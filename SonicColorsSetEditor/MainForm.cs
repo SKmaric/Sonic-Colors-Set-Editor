@@ -165,7 +165,7 @@ namespace SonicColorsSetEditor
                     if (lvi.SubItems[1].Text.Length > longestNameLength)
                         longestNameLength = lvi.SubItems[1].Text.Length;
 
-                    if (setObject.IsTemplateExists == false)
+                    if (!TemplatesColors.ContainsKey(setObject.ObjectType))
                         lvi.ForeColor = Color.Red;
 
                     ListView_Objects.Items.Add(lvi);

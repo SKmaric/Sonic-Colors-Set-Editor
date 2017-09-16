@@ -27,7 +27,7 @@ namespace HedgeLib.Sets
             foreach (var obj in Objects)
             {
                 //Skip objects with no template.
-                if (obj.IsTemplateExists == false) continue;
+                if (!objectTemplates.ContainsKey(obj.ObjectType)) continue;
 
                 //Generate Object Element
                 var GensObjName = obj.ObjectType;
