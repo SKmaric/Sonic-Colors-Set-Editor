@@ -661,16 +661,16 @@ namespace SonicColorsSetEditor
 
         private void rawParameterDataToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            if (SelectedSetObject.RawParamData != null)
+            if (SelectedSetObject.CustomData["RawParamData"] != null)
             {
                 string raw = null;
-                foreach (byte paramByte in SelectedSetObject.RawParamData)
+                foreach (byte paramByte in SelectedSetObject.GetCustomDataValue<byte[]>("RawParamData"))
                 {
-					if (paramByte.ToString().Length < 2)
-						raw += "0" + paramByte.ToString("X") + " ";
-					else
-						raw += paramByte.ToString("X") + " ";
-				}
+                    if (paramByte.ToString().Length < 2)
+                        raw += "0" + paramByte.ToString("X") + " ";
+                    else
+                        raw += paramByte.ToString("X") + " ";
+                }
                 MessageBox.Show(raw);
 				Clipboard.SetText(raw);
 			}
