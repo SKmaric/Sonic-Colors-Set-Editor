@@ -43,8 +43,10 @@ namespace SonicColorsSetEditor
         //Generations conversion
         public ColorstoGensSetData ColorstoGensSetData = null;
         public Dictionary<string, string> ColorstoGensRenamers = null;
+        public Dictionary<string, string> ColorstoGensPosYMods = null;
+        public Dictionary<string, string> ColorstoGensRotateXMods = null;
+        public Dictionary<string, string> ColorstoGensRotateYMods = null;
         public Dictionary<string, string> ColorstoGensParamMods = null;
-        public Dictionary<string, string> ColorstoGensRotateMods = null;
 
         // Constructors
         public MainForm()
@@ -105,11 +107,15 @@ namespace SonicColorsSetEditor
                 {
                     var doc = XDocument.Load("Templates/Colors/Modifiers-ColorsToGenerations.xml");
                     var renameNodes = doc.Root.Element("Rename").DescendantNodes().OfType<XElement>();
-                    var paramNodes = doc.Root.Element("Parameters").DescendantNodes().OfType<XElement>();
-                    var rotateNodes = doc.Root.Element("Rotation").DescendantNodes().OfType<XElement>();
+                    var posYNodes = doc.Root.Element("Position-Y").DescendantNodes().OfType<XElement>();
+                    var rotateXNodes = doc.Root.Element("Rotation-X").DescendantNodes().OfType<XElement>();
+                    var rotateYNodes = doc.Root.Element("Rotation-Y").DescendantNodes().OfType<XElement>();
+                    var paramNodes = doc.Root.Element("Param-Divide").DescendantNodes().OfType<XElement>();
                     ColorstoGensRenamers = renameNodes.ToDictionary(n => n.Name.ToString(), n => n.Value);
+                    ColorstoGensPosYMods = posYNodes.ToDictionary(n => n.Name.ToString(), n => n.Value);
+                    ColorstoGensRotateXMods = rotateXNodes.ToDictionary(n => n.Name.ToString(), n => n.Value);
+                    ColorstoGensRotateYMods = rotateYNodes.ToDictionary(n => n.Name.ToString(), n => n.Value);
                     ColorstoGensParamMods = paramNodes.ToDictionary(n => n.Name.ToString(), n => n.Value);
-                    ColorstoGensRotateMods = rotateNodes.ToDictionary(n => n.Name.ToString(), n => n.Value);
                 }
             }
 
@@ -370,7 +376,7 @@ namespace SonicColorsSetEditor
                     //ColorstoGensSetData.Header = SetData.Header;
                     ColorstoGensSetData.Name = SetData.Name;
                     ColorstoGensSetData.Objects = SetData.Objects;
-                    ColorstoGensSetData.GensExportXML(LoadedFilePath, TemplatesColors, ColorstoGensRenamers, ColorstoGensParamMods, ColorstoGensRotateMods);
+                    ColorstoGensSetData.GensExportXML(LoadedFilePath, TemplatesColors, ColorstoGensRenamers, ColorstoGensPosYMods, ColorstoGensRotateXMods, ColorstoGensRotateYMods, ColorstoGensParamMods);
 
                     MessageBox.Show("This feature is currently in development. In order to prevent bugs caused by the program remaining open after an export, the program will now close, but you may open it again immediately without consequence. Thank you for your understanding.");
                     Application.Exit();
@@ -661,22 +667,22 @@ namespace SonicColorsSetEditor
 
         private void rawParameterDataToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            if (SelectedSetObject.CustomData["RawParamData"] != null)
+            string raw = null;
+            foreach (byte paramByte in SelectedSetObject.GetCustomDataValue<byte[]>("RawParamData"))
             {
-                string raw = null;
-                foreach (byte paramByte in SelectedSetObject.GetCustomDataValue<byte[]>("RawParamData"))
-                {
-                    if (paramByte.ToString().Length < 2)
-                        raw += "0" + paramByte.ToString("X") + " ";
-                    else
-                        raw += paramByte.ToString("X") + " ";
-                }
+                if (paramByte.ToString().Length < 2)
+                    raw += "0" + paramByte.ToString("X") + " ";
+                else
+                    raw += paramByte.ToString("X") + " ";
+            }
+            if (raw != null)
+            {
                 MessageBox.Show(raw);
-				Clipboard.SetText(raw);
-			}
+                Clipboard.SetText(raw);
+            }
             else
             {
-                MessageBox.Show("Raw data for this object has not been loaded (did you check the template?)");
+                MessageBox.Show("Raw data for this object has not been loaded");
             }
         }
 
