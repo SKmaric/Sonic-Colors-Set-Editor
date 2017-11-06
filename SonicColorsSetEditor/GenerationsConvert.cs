@@ -10,16 +10,28 @@ namespace HedgeLib.Sets
     public class ColorstoGensSetData : ColorsSetData
     {
         public void GensExportXML(string filePath,
-            Dictionary<string, SetObjectType> objectTemplates = null, Dictionary<string, string> ColorstoGensRenamers = null, Dictionary<string, string> ColorstoGensPosYMods = null, Dictionary<string, string> ColorstoGensRotateXMods = null, Dictionary<string, string> ColorstoGensRotateYMods = null, Dictionary < string, string> ColorstoGensParamMods = null)
+            Dictionary<string, SetObjectType> objectTemplates = null, 
+            Dictionary<string, string> ColorstoGensRenamers = null, 
+            Dictionary<string, string> ColorstoGensPosYMods = null, 
+            Dictionary<string, string> ColorstoGensRotateXMods = null, 
+            Dictionary<string, string> ColorstoGensRotateYMods = null, 
+            Dictionary < string, string> ColorstoGensParamMods = null)
         {
             using (var fileStream = File.OpenWrite(filePath))
             {
-                GensExportXML(fileStream, objectTemplates, ColorstoGensRenamers, ColorstoGensPosYMods, ColorstoGensRotateXMods, ColorstoGensRotateYMods, ColorstoGensParamMods);
+                GensExportXML(fileStream, objectTemplates, ColorstoGensRenamers, 
+                    ColorstoGensPosYMods, ColorstoGensRotateXMods, ColorstoGensRotateYMods, 
+                    ColorstoGensParamMods);
             }
         }
 
         public void GensExportXML(Stream fileStream,
-            Dictionary<string, SetObjectType> objectTemplates = null, Dictionary<string, string> ColorstoGensRenamers = null, Dictionary<string, string> ColorstoGensPosYMods = null, Dictionary<string, string> ColorstoGensRotateXMods = null, Dictionary<string, string> ColorstoGensRotateYMods = null, Dictionary < string, string> ColorstoGensParamMods = null)
+            Dictionary<string, SetObjectType> objectTemplates = null, 
+            Dictionary<string, string> ColorstoGensRenamers = null, 
+            Dictionary<string, string> ColorstoGensPosYMods = null, 
+            Dictionary<string, string> ColorstoGensRotateXMods = null, 
+            Dictionary<string, string> ColorstoGensRotateYMods = null, 
+            Dictionary < string, string> ColorstoGensParamMods = null)
         {
             // Convert to XML file and save
             var rootElem = new XElement("SetObject");
@@ -46,12 +58,28 @@ namespace HedgeLib.Sets
                 // Messy use RangeOut value as Range value.
                 foreach (var customData in obj.CustomData)
                 {
-                    if (customData.Key == "RangeOut")
+                    // Experimental - use RangeIn as Range for SoundPoint
+                    if (customData.Key == "RangeIn")
                     {
-                        objElem.Add(GenerateParamElementGens(
-                            customData.Value, "Range"));
+                        if (obj.ObjectType == "EnvSound")
+                        {
+                            objElem.Add(GenerateParamElementGens(
+                                customData.Value, "Range"));
+                        }
                     }
-
+                    else if (customData.Key == "RangeOut")
+                    {
+                        if (obj.ObjectType == "EnvSound")
+                        {
+                            objElem.Add(GenerateParamElementGens(
+                                customData.Value, "Radius"));
+                        }
+                        else
+                        {
+                            objElem.Add(GenerateParamElementGens(
+                                customData.Value, "Range"));
+                        }
+                    }
                 }
 
                 // Generate Parameters Element
@@ -101,7 +129,8 @@ namespace HedgeLib.Sets
                         break;
                     }
                 }
-                objElem.Add(GenerateRotationElement(obj.Transform, obj.ObjectType, rotateXModifier, rotateYModifier));
+                objElem.Add(GenerateRotationElement(obj.Transform, obj.ObjectType, 
+                    rotateXModifier, rotateYModifier));
 
                 // Generate ID Element
                 var objIDAttr = new XElement("SetObjectID", obj.ObjectID);
@@ -116,8 +145,10 @@ namespace HedgeLib.Sets
                     {
                         var childElem = new XElement("Element");
                         childElem.Add(new XElement("Index", i + 1));
-                        childElem.Add(GeneratePositionElement(obj.Children[i], obj.ObjectType, posYModifier));
-                        childElem.Add(GenerateRotationElement(obj.Children[i], obj.ObjectType, rotateXModifier, rotateYModifier));
+                        childElem.Add(GeneratePositionElement(obj.Children[i], obj.ObjectType, 
+                            posYModifier));
+                        childElem.Add(GenerateRotationElement(obj.Children[i], obj.ObjectType, 
+                            rotateXModifier, rotateYModifier));
                         multiElem.Add(childElem);
                     }
                     multiElem.Add(new XElement("BaseLine", 1));
@@ -176,14 +207,18 @@ namespace HedgeLib.Sets
 
                     if (Math.Abs(singleValue) < 1)
                     {
-                        elem.Value = singleValue.ToString("0.########################"); // Prevent scientific notation
+                        elem.Value = singleValue.ToString("0.########################"); 
+                        // Prevent scientific notation
                     }
                     else
                     {
-                        elem.Value = singleValue.ToString("#################################.########################"); // Prevent scientific notation
+                        elem.Value = singleValue.ToString(
+                            "#################################.########################"); 
+                        // Prevent scientific notation
                     }
                 }
-                else if ((name == "ACameraID") || (name == "BCameraID") || (name == "ALinkObjID") || (name == "BLinkObjID"))
+                else if ((name == "ACameraID") || (name == "BCameraID") 
+                    || (name == "ALinkObjID") || (name == "BLinkObjID"))
                 {
                     var targetIDAttr = new XElement("SetObjectID", param.Data.ToString());
                     elem.Add(targetIDAttr);
@@ -223,7 +258,8 @@ namespace HedgeLib.Sets
             }
 
             XElement GenerateRotationElement(
-                SetObjectTransform transform, string name = "Transform", float rotateXModifier = 0, float rotateYModifier = 0)
+                SetObjectTransform transform, string name = "Transform", 
+                float rotateXModifier = 0, float rotateYModifier = 0)
             {
                 // Convert Rotation into elements.
                 var rotElem = new XElement("Rotation");
