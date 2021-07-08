@@ -99,7 +99,6 @@ namespace SonicColorsSetEditor
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.ToolStrip_Label = new System.Windows.Forms.ToolStripStatusLabel();
             this.rawParameterDataToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.ToolStripMenuItem_LaunchSCWithoutSaving = new System.Windows.Forms.ToolStripMenuItem();
             this.menuStrip1.SuspendLayout();
             this.SOBJ_ContextMenuStrip.SuspendLayout();
             this.groupBox1.SuspendLayout();
@@ -878,15 +877,7 @@ namespace SonicColorsSetEditor
             this.rawParameterDataToolStripMenuItem.Name = "rawParameterDataToolStripMenuItem";
             this.rawParameterDataToolStripMenuItem.Size = new System.Drawing.Size(198, 22);
             this.rawParameterDataToolStripMenuItem.Text = "Raw Parameter Data";
-            this.rawParameterDataToolStripMenuItem.Click += new System.EventHandler(this.rawParameterDataToolStripMenuItem_Click);
-            // ToolStripMenuItem_LaunchSCWithoutSaving
-            // 
-            this.ToolStripMenuItem_LaunchSCWithoutSaving.Enabled = false;
-            this.ToolStripMenuItem_LaunchSCWithoutSaving.Name = "ToolStripMenuItem_LaunchSCWithoutSaving";
-            this.ToolStripMenuItem_LaunchSCWithoutSaving.ShortcutKeys = System.Windows.Forms.Keys.F3;
-            this.ToolStripMenuItem_LaunchSCWithoutSaving.Size = new System.Drawing.Size(273, 22);
-            this.ToolStripMenuItem_LaunchSCWithoutSaving.Text = "Launch SC Without Saving";
-            this.ToolStripMenuItem_LaunchSCWithoutSaving.Click += new System.EventHandler(this.ToolStripMenuItem_LaunchSCWithoutSaving_Click);
+            this.rawParameterDataToolStripMenuItem.Click += new System.EventHandler(this.RawParameterDataToolStripMenuItem_Click);
             // 
             // MainForm
             // 

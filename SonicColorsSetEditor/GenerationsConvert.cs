@@ -11,7 +11,8 @@ namespace HedgeLib.Sets
     {
         public void GensExportXML(string filePath,
             Dictionary<string, SetObjectType> objectTemplates = null, 
-            Dictionary<string, string> ColorstoGensRenamers = null, 
+            Dictionary<string, string> ColorstoGensRenamers = null,
+            Dictionary<string, string> ColorstoGensObjPhys = null,
             Dictionary<string, string> ColorstoGensPosYMods = null, 
             Dictionary<string, string> ColorstoGensRotateXMods = null, 
             Dictionary<string, string> ColorstoGensRotateYMods = null, 
@@ -19,15 +20,16 @@ namespace HedgeLib.Sets
         {
             using (var fileStream = File.OpenWrite(filePath))
             {
-                GensExportXML(fileStream, objectTemplates, ColorstoGensRenamers, 
-                    ColorstoGensPosYMods, ColorstoGensRotateXMods, ColorstoGensRotateYMods, 
-                    ColorstoGensParamMods);
+                GensExportXML(fileStream, objectTemplates, ColorstoGensRenamers,
+                    ColorstoGensObjPhys, ColorstoGensPosYMods, ColorstoGensRotateXMods, 
+                    ColorstoGensRotateYMods, ColorstoGensParamMods);
             }
         }
 
         public void GensExportXML(Stream fileStream,
             Dictionary<string, SetObjectType> objectTemplates = null, 
-            Dictionary<string, string> ColorstoGensRenamers = null, 
+            Dictionary<string, string> ColorstoGensRenamers = null,
+            Dictionary<string, string> ColorstoGensObjPhys = null,
             Dictionary<string, string> ColorstoGensPosYMods = null, 
             Dictionary<string, string> ColorstoGensRotateXMods = null, 
             Dictionary<string, string> ColorstoGensRotateYMods = null, 
@@ -42,7 +44,7 @@ namespace HedgeLib.Sets
                 if (!objectTemplates.ContainsKey(obj.ObjectType)) continue;
 
                 // Generate Object Element
-                var GensObjName = obj.ObjectType;
+                string GensObjName = obj.ObjectType;
                 // Rename if applicable
                 foreach (var node in ColorstoGensRenamers)
                 {
@@ -87,7 +89,7 @@ namespace HedgeLib.Sets
 
                 for (int i = 0; i < obj.Parameters.Count; ++i)
                 {
-                    var name = template?.Parameters[i].Name;
+                    string name = template?.Parameters[i].Name;
                     // Ignore parameters containing "Unknown"
                     if (!name.Contains("Unknown"))
                     {
@@ -95,10 +97,22 @@ namespace HedgeLib.Sets
                             template?.Parameters[i].Name));
                     }
                 }
+                // Change to ObjectPhysics if necessary
+                foreach (var node in ColorstoGensObjPhys)
+                {
+                    if (obj.ObjectType == node.Key)
+                    {
+                        var param = new SetObjectParam();
+                        param.DataType = typeof(string);
+                        param.Data = obj.ObjectType;
+                        objElem.Add(GenerateParamElementGens(param, "Type"));
+                        objElem.Name = "ObjectPhysics";
+                    }
+                }
 
                 // Generate Transforms Elements
                 // Apply position to objects that need it
-                var posYModifier = new float();
+                float posYModifier = new float();
                 foreach (var node in ColorstoGensPosYMods)
                 {
                     if (obj.ObjectType == node.Key)
@@ -110,7 +124,7 @@ namespace HedgeLib.Sets
                 objElem.Add(GeneratePositionElement(obj.Transform, obj.ObjectType, posYModifier));
                 // Apply rotation to objects that need it
                 // X
-                var rotateXModifier = new float();
+                float rotateXModifier = new float();
                 foreach (var node in ColorstoGensRotateXMods)
                 {
                     if (obj.ObjectType == node.Key)
@@ -120,7 +134,7 @@ namespace HedgeLib.Sets
                     }
                 }
                 // Y
-                var rotateYModifier = new float();
+                float rotateYModifier = new float();
                 foreach (var node in ColorstoGensRotateYMods)
                 {
                     if (obj.ObjectType == node.Key)
@@ -205,7 +219,7 @@ namespace HedgeLib.Sets
                         }
                     }
 
-                    if (Math.Abs(singleValue) < 1)
+                    if (System.Math.Abs(singleValue) < 1)
                     {
                         elem.Value = singleValue.ToString("0.########################"); 
                         // Prevent scientific notation
@@ -277,16 +291,16 @@ namespace HedgeLib.Sets
                             temp.X = temp.X + rotateXModifier;
                             transform.Rotation = new Quaternion(temp);
                         }
-                        else if ((temp.Y == 0) && (Math.Abs(rotateXModifier) == 90))
+                        else if ((temp.Y == 0) && (System.Math.Abs(rotateXModifier) == 90))
                         {
-                            temp.X = -90 + Math.Abs(temp.Z);
+                            temp.X = -90 + System.Math.Abs(temp.Z);
                             temp.Y = rotateXModifier * -1;
                             temp.Z = -90;
                             Console.WriteLine("X rotation");
                             // This is necessary since conversion between
                             // Vector 3 and Quaternion is wonky
                             var Rotation = new Quaternion(temp);
-                            var temptemp = Rotation.Y;
+                            float temptemp = Rotation.Y;
                             Rotation.Y = Rotation.W;
                             Rotation.W = temptemp;
                             transform.Rotation = new Quaternion(Rotation);
@@ -304,7 +318,7 @@ namespace HedgeLib.Sets
                         }
                         else if ((rotateYModifier == 90) || (rotateYModifier == -90))
                         {
-                            var temptemp = temp.X;
+                            float temptemp = temp.X;
                             temp.X = temp.Z;
                             temp.Z = temptemp;
 

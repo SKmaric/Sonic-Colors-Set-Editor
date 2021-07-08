@@ -43,6 +43,7 @@ namespace SonicColorsSetEditor
         //Generations conversion
         public ColorstoGensSetData ColorstoGensSetData = null;
         public Dictionary<string, string> ColorstoGensRenamers = null;
+        public Dictionary<string, string> ColorstoGensObjPhys = null;
         public Dictionary<string, string> ColorstoGensPosYMods = null;
         public Dictionary<string, string> ColorstoGensRotateXMods = null;
         public Dictionary<string, string> ColorstoGensRotateYMods = null;
@@ -107,15 +108,16 @@ namespace SonicColorsSetEditor
                 {
                     var doc = XDocument.Load("Templates/Colors/Modifiers-ColorsToGenerations.xml");
                     var renameNodes = doc.Root.Element("Rename").DescendantNodes().OfType<XElement>();
-                    var posYNodes = doc.Root.Element("Position-Y").DescendantNodes().OfType<XElement>();
-                    var rotateXNodes = doc.Root.Element("Rotation-X").DescendantNodes().OfType<XElement>();
-                    var rotateYNodes = doc.Root.Element("Rotation-Y").DescendantNodes().OfType<XElement>();
+                    var objPhysNodes = doc.Root.Element("MakeObjectPhysics").DescendantNodes().OfType<XElement>();
+                    var posYNodes = doc.Root.Element("PositionOffset").DescendantNodes().OfType<XElement>();
+                    var rotateNodes = doc.Root.Element("RotationOffset").DescendantNodes().OfType<XElement>();
                     var paramNodes = doc.Root.Element("Param-Divide").DescendantNodes().OfType<XElement>();
-                    ColorstoGensRenamers = renameNodes.ToDictionary(n => n.Name.ToString(), n => n.Value);
-                    ColorstoGensPosYMods = posYNodes.ToDictionary(n => n.Name.ToString(), n => n.Value);
-                    ColorstoGensRotateXMods = rotateXNodes.ToDictionary(n => n.Name.ToString(), n => n.Value);
-                    ColorstoGensRotateYMods = rotateYNodes.ToDictionary(n => n.Name.ToString(), n => n.Value);
-                    ColorstoGensParamMods = paramNodes.ToDictionary(n => n.Name.ToString(), n => n.Value);
+                    ColorstoGensRenamers = renameNodes.ToDictionary(n => n.Name.ToString(), n => n.Attribute("Value").Value);
+                    ColorstoGensObjPhys = objPhysNodes.ToDictionary(n => n.Name.ToString(), n => n.Value);
+                    ColorstoGensPosYMods = posYNodes.ToDictionary(n => n.Name.ToString(), n => n.Attribute("Y").Value);
+                    ColorstoGensRotateXMods = rotateNodes.ToDictionary(n => n.Name.ToString(), n => n.Attribute("X").Value);
+                    ColorstoGensRotateYMods = rotateNodes.ToDictionary(n => n.Name.ToString(), n => n.Attribute("Y").Value);
+                    ColorstoGensParamMods = paramNodes.ToDictionary(n => n.Name.ToString(), n => n.Attribute("Value").Value);
                 }
             }
 
@@ -376,7 +378,7 @@ namespace SonicColorsSetEditor
                     //ColorstoGensSetData.Header = SetData.Header;
                     ColorstoGensSetData.Name = SetData.Name;
                     ColorstoGensSetData.Objects = SetData.Objects;
-                    ColorstoGensSetData.GensExportXML(LoadedFilePath, TemplatesColors, ColorstoGensRenamers, ColorstoGensPosYMods, ColorstoGensRotateXMods, ColorstoGensRotateYMods, ColorstoGensParamMods);
+                    ColorstoGensSetData.GensExportXML(LoadedFilePath, TemplatesColors, ColorstoGensRenamers, ColorstoGensObjPhys, ColorstoGensPosYMods, ColorstoGensRotateXMods, ColorstoGensRotateYMods, ColorstoGensParamMods);
 
                     MessageBox.Show("This feature is currently in development. In order to prevent bugs caused by the program remaining open after an export, the program will now close, but you may open it again immediately without consequence. Thank you for your understanding.");
                     Application.Exit();
@@ -665,7 +667,7 @@ namespace SonicColorsSetEditor
 
         }
 
-        private void rawParameterDataToolStripMenuItem_Click(object sender, EventArgs e)
+        private void RawParameterDataToolStripMenuItem_Click(object sender, EventArgs e)
         {
             string raw = null;
             foreach (byte paramByte in SelectedSetObject.GetCustomDataValue<byte[]>("RawParamData"))
