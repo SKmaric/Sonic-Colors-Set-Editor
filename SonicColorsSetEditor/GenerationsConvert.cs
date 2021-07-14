@@ -12,12 +12,11 @@ namespace HedgeLib.Sets
     {
         public Dictionary<string, SetObjectType> ObjectTemplates = null;
         public Dictionary<string, SetObjectType> TargetTemplates = null;
-        Dictionary<string, string> ColorstoGensRenamers = null;
-        Dictionary<string, string> ColorstoGensObjPhys = null;
-        Dictionary<string, string> ColorstoGensPosYMods = null;
-        Dictionary<string, string> ColorstoGensRotateXMods = null;
-        Dictionary<string, string> ColorstoGensRotateYMods = null;
-        Dictionary<string, string> ColorstoGensParamMods = null;
+        Dictionary<string, string> RenameDict = null;
+        Dictionary<string, string> ObjPhysDict = null;
+        Dictionary<string, Vector3> PositionOffsets = null;
+        Dictionary<string, Vector3> RotationOffsets = null;
+        Dictionary<string, string> ParamMods = null;
 
         public void GensExportXML(string filePath, List<SetObject> sourceObjects, XDocument doc)
         {
@@ -45,11 +44,24 @@ namespace HedgeLib.Sets
                 // Generate Object Element
                 string GensObjName = obj.ObjectType;
                 // Rename if applicable
-                foreach (var node in ColorstoGensRenamers)
+                foreach (var node in RenameDict)
                 {
-                    if (GensObjName == node.Value)
+                    if (obj.ObjectType == node.Key)
                     {
-                        GensObjName = node.Key;
+                        GensObjName = node.Value;
+                    }
+                }
+
+                // Change to ObjectPhysics if necessary
+                foreach (var node in ObjPhysDict)
+                {
+                    if (obj.ObjectType == node.Key)
+                    {
+                        //var param = new SetObjectParam();
+                        //param.DataType = typeof(string);
+                        //param.Data = obj.ObjectType;
+                        //objElem.Add(GenerateParamElementGens(param, "Type"));
+                        GensObjName = "ObjectPhysics";
                     }
                 }
 
@@ -87,64 +99,53 @@ namespace HedgeLib.Sets
                 var template = ObjectTemplates?[obj.ObjectType];
                 var targetTemplate = TargetTemplates?[GensObjName];
 
-                for (int i = 0; i < obj.Parameters.Count; ++i)
+                for (int i = 0; i < targetTemplate.Parameters.Count; ++i)
                 {
-                    string name = template?.Parameters[i].Name;
-                    // Ignore parameters containing "Unknown"
-                    if (!name.Contains("Unknown"))
+                    string name = targetTemplate?.Parameters[i].Name;
+
+                    Predicate<SetObjectTypeParam> nameCheck = (SetObjectTypeParam p) => { return p.Name == name; };
+
+                    int paramIndex = template.Parameters.FindIndex(nameCheck);
+
+                    if (paramIndex >= 0)
+                        objElem.Add(GenerateParamElementGens(obj.Parameters[paramIndex], name));
+                    else
                     {
-                        objElem.Add(GenerateParamElementGens(obj.Parameters[i],
-                            template?.Parameters[i].Name));
-                    }
-                }
-                // Change to ObjectPhysics if necessary
-                foreach (var node in ColorstoGensObjPhys)
-                {
-                    if (obj.ObjectType == node.Key)
-                    {
-                        var param = new SetObjectParam();
-                        param.DataType = typeof(string);
-                        param.Data = obj.ObjectType;
-                        objElem.Add(GenerateParamElementGens(param, "Type"));
-                        objElem.Name = "ObjectPhysics";
+                        if (GensObjName == "ObjectPhysics" && name == "Type")
+                        {
+                            //default value
+                            var param = new SetObjectParam();
+                            param.DataType = typeof(string);
+                            param.Data = obj.ObjectType.ToString();
+                            objElem.Add(GenerateParamElementGens(param, name));
+                        }
+                        else
+                        {
+                            //default value
+                            var param = new SetObjectParam();
+                            param.DataType = targetTemplate?.Parameters[i].DataType;
+                            param.Data = targetTemplate?.Parameters[i].DefaultValue;
+                            objElem.Add(GenerateParamElementGens(param, name));
+                        }
                     }
                 }
 
                 // Generate Transforms Elements
                 // Apply position to objects that need it
-                float posYModifier = new float();
-                foreach (var node in ColorstoGensPosYMods)
+                Vector3 PositionOffset = new Vector3();
+                if (PositionOffsets.ContainsKey(obj.ObjectType))
                 {
-                    if (obj.ObjectType == node.Key)
-                    {
-                        posYModifier = float.Parse(node.Value.ToString());
-                        break;
-                    }
+                    PositionOffset = PositionOffsets[obj.ObjectType];
                 }
-                objElem.Add(GeneratePositionElement(obj.Transform, obj.ObjectType, posYModifier));
+                objElem.Add(GeneratePositionElement(obj.Transform, obj.ObjectType, PositionOffset));
+
                 // Apply rotation to objects that need it
-                // X
-                float rotateXModifier = new float();
-                foreach (var node in ColorstoGensRotateXMods)
+                Vector3 RotationOffset = new Vector3();
+                if (RotationOffsets.ContainsKey(obj.ObjectType))
                 {
-                    if (obj.ObjectType == node.Key)
-                    {
-                        rotateXModifier = float.Parse(node.Value.ToString());
-                        break;
-                    }
+                    RotationOffset = RotationOffsets[obj.ObjectType];
                 }
-                // Y
-                float rotateYModifier = new float();
-                foreach (var node in ColorstoGensRotateYMods)
-                {
-                    if (obj.ObjectType == node.Key)
-                    {
-                        rotateYModifier = float.Parse(node.Value.ToString());
-                        break;
-                    }
-                }
-                objElem.Add(GenerateRotationElement(obj.Transform, obj.ObjectType, 
-                    rotateXModifier, rotateYModifier));
+                objElem.Add(GenerateRotationElement(obj.Transform, obj.ObjectType, RotationOffset));
 
                 // Generate ID Element
                 var objIDAttr = new XElement("SetObjectID", obj.ObjectID);
@@ -160,9 +161,9 @@ namespace HedgeLib.Sets
                         var childElem = new XElement("Element");
                         childElem.Add(new XElement("Index", i + 1));
                         childElem.Add(GeneratePositionElement(obj.Children[i], obj.ObjectType, 
-                            posYModifier));
-                        childElem.Add(GenerateRotationElement(obj.Children[i], obj.ObjectType, 
-                            rotateXModifier, rotateYModifier));
+                            PositionOffset));
+                        childElem.Add(GenerateRotationElement(obj.Children[i], obj.ObjectType,
+                            RotationOffset));
                         multiElem.Add(childElem);
                     }
                     multiElem.Add(new XElement("BaseLine", 1));
@@ -189,7 +190,11 @@ namespace HedgeLib.Sets
                 var elem = new XElement((string.IsNullOrEmpty(name)) ?
                     "Parameter" : name);
 
-                if (dataType == typeof(Vector3))
+                if (dataType == typeof(string))
+                {
+                    elem.Value = param.Data.ToString();
+                }
+                else if (dataType == typeof(Vector3))
                 {
                     // Scale
                     var tempVector3 = new Vector3();
@@ -210,7 +215,7 @@ namespace HedgeLib.Sets
                     var singleValue = new Single();
                     singleValue = float.Parse(param.Data.ToString());
                     // Parameter scaling
-                    foreach (var node in ColorstoGensParamMods)
+                    foreach (var node in ParamMods)
                     {
                         if (name.Contains(node.Key))
                         {
@@ -237,10 +242,10 @@ namespace HedgeLib.Sets
                     var targetIDAttr = new XElement("SetObjectID", param.Data.ToString());
                     elem.Add(targetIDAttr);
                 }
-                else
+                else if(param.DataType == typeof(Boolean))
                 {
-                    elem.Value = param.Data.ToString();
                     // Boolean caps
+                    elem.Value = param.Data.ToString();
                     if (param.Data.ToString() == "True")
                     {
                         elem.Value = "true";
@@ -250,20 +255,25 @@ namespace HedgeLib.Sets
                         elem.Value = "false";
                     }
                 }
+                else if (param.Data != null)
+                {
+                    elem.Value = param.Data.ToString();
+                }
 
                 return elem;
             }
 
             XElement GeneratePositionElement(
-                SetObjectTransform transform, string name = "Transform", float posYModifier = 0)
+                SetObjectTransform transform, string name = "Transform", Vector3 positionOffset = new Vector3())
             {
                 // Convert Position into elements.
                 var posElem = new XElement("Position");
 
-                // Scaling
-                transform.Position.X = (transform.Position.X / 10);
-                transform.Position.Y = ((transform.Position.Y / 10) + posYModifier);
-                transform.Position.Z = (transform.Position.Z / 10);
+                //Scaling
+                transform.Position = transform.Position * 0.1f;
+
+                //Offset
+                transform.Position += positionOffset;
 
                 Helpers.XMLWriteVector3(posElem, transform.Position);
 
@@ -272,29 +282,28 @@ namespace HedgeLib.Sets
             }
 
             XElement GenerateRotationElement(
-                SetObjectTransform transform, string name = "Transform", 
-                float rotateXModifier = 0, float rotateYModifier = 0)
+                SetObjectTransform transform, string name = "Transform", Vector3 rotationOffset = new Vector3())
             {
                 // Convert Rotation into elements.
                 var rotElem = new XElement("Rotation");
 
                 // Rotate objects that need it
-                if (rotateXModifier != 0 || rotateYModifier != 0)
+                if (rotationOffset.X != 0 || rotationOffset.Y != 0)
                 {
                     var temp = transform.Rotation.ToEulerAngles();
                     // X
-                    if (rotateXModifier != 0)
+                    if (rotationOffset.X != 0)
                     {
                         
                         if ((temp.Y == 0) && (temp.Z == 0))
                         {
-                            temp.X = temp.X + rotateXModifier;
+                            temp.X = temp.X + rotationOffset.X;
                             transform.Rotation = new Quaternion(temp);
                         }
-                        else if ((temp.Y == 0) && (System.Math.Abs(rotateXModifier) == 90))
+                        else if ((temp.Y == 0) && (System.Math.Abs(rotationOffset.X) == 90))
                         {
                             temp.X = -90 + System.Math.Abs(temp.Z);
-                            temp.Y = rotateXModifier * -1;
+                            temp.Y = rotationOffset.X * -1;
                             temp.Z = -90;
                             Console.WriteLine("X rotation");
                             // This is necessary since conversion between
@@ -309,20 +318,20 @@ namespace HedgeLib.Sets
 
                     }
                     // Y
-                    if (rotateYModifier != 0)
+                    if (rotationOffset.Y != 0)
                     {
-                        temp.Y = temp.Y + rotateYModifier;
-                        if ((rotateYModifier == 180) || (rotateYModifier == -180))
+                        temp.Y = temp.Y + rotationOffset.Y;
+                        if ((rotationOffset.Y == 180) || (rotationOffset.Y == -180))
                         {
                             temp.X = temp.X * -1;
                         }
-                        else if ((rotateYModifier == 90) || (rotateYModifier == -90))
+                        else if ((rotationOffset.Y == 90) || (rotationOffset.Y == -90))
                         {
                             float temptemp = temp.X;
                             temp.X = temp.Z;
                             temp.Z = temptemp;
 
-                            if (rotateYModifier == 90)
+                            if (rotationOffset.Y == 90)
                             {
                                 temp.X = temp.X * -1;
                             }
@@ -346,15 +355,24 @@ namespace HedgeLib.Sets
         {
             var renameNodes = doc.Root.Element("Rename").DescendantNodes().OfType<XElement>();
             var objPhysNodes = doc.Root.Element("MakeObjectPhysics").DescendantNodes().OfType<XElement>();
-            var posYNodes = doc.Root.Element("PositionOffset").DescendantNodes().OfType<XElement>();
-            var rotateNodes = doc.Root.Element("RotationOffset").DescendantNodes().OfType<XElement>();
+            var positionNodes = doc.Root.Element("PositionOffset").DescendantNodes().OfType<XElement>();
+            var rotationNodes = doc.Root.Element("RotationOffset").DescendantNodes().OfType<XElement>();
             var paramNodes = doc.Root.Element("Param-Divide").DescendantNodes().OfType<XElement>();
-            ColorstoGensRenamers = renameNodes.ToDictionary(n => n.Attribute("Value").Value, n => n.Name.ToString());
-            ColorstoGensObjPhys = objPhysNodes.ToDictionary(n => n.Name.ToString(), n => n.Value);
-            ColorstoGensPosYMods = posYNodes.ToDictionary(n => n.Name.ToString(), n => n.Attribute("Y").Value);
-            ColorstoGensRotateXMods = rotateNodes.ToDictionary(n => n.Name.ToString(), n => n.Attribute("X").Value);
-            ColorstoGensRotateYMods = rotateNodes.ToDictionary(n => n.Name.ToString(), n => n.Attribute("Y").Value);
-            ColorstoGensParamMods = paramNodes.ToDictionary(n => n.Name.ToString(), n => n.Attribute("Value").Value);
+
+            RenameDict = renameNodes.ToDictionary(n => n.Attribute("Value").Value, n => n.Name.ToString());
+            ObjPhysDict = objPhysNodes.ToDictionary(n => n.Name.ToString(), n => n.Value);
+            PositionOffsets = positionNodes.ToDictionary(n => n.Name.ToString(), n => new Vector3(
+                float.Parse(n.Attribute("X").Value),
+                float.Parse(n.Attribute("Y").Value),
+                float.Parse(n.Attribute("Z").Value)
+                ));
+
+            RotationOffsets = rotationNodes.ToDictionary(n => n.Name.ToString(), n => new Vector3(
+                float.Parse(n.Attribute("X").Value),
+                float.Parse(n.Attribute("Y").Value),
+                float.Parse(n.Attribute("Z").Value)
+                ));
+            ParamMods = paramNodes.ToDictionary(n => n.Name.ToString(), n => n.Attribute("Value").Value);
         }
 
         public static T DeepCopy<T>(T item)
@@ -368,5 +386,15 @@ namespace HedgeLib.Sets
             return result;
         }
     }
+
+    public class ParamMods
+    {
+        // Variables/Constants
+        public string name;
+        public string rename;
+        public float factor;
+        public float offset;
+        public bool boolFlip;
+        public bool enumstring;
     }
 }
