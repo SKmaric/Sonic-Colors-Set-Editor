@@ -175,8 +175,14 @@ namespace HedgeLib.Sets
                     objElem.Add(multiElem);
                 }
 
+                //Sort element
+                var sortedObjElem = new XElement(objElem.Name,
+                    from el in objElem.Elements()
+                    orderby el.Name.ToString()
+                    select el);
+
                 // Add all of this to the XDocument
-                rootElem.Add(objElem);
+                rootElem.Add(sortedObjElem);
             }
 
             var xml = new XDocument(rootElem);
