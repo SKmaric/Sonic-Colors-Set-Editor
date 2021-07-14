@@ -102,23 +102,6 @@ namespace SonicColorsSetEditor
                 foreach (string objName in TemplatesColors.Keys)
                     ComboBox_ObjectType.Items.Add(objName);
                 Console.WriteLine("Loaded {0} Templates.", TemplatesColors.Count);
-                
-                // Load the Modifiers file
-                if (File.Exists("Templates/Colors/Modifiers-ColorsToGenerations.xml"))
-                {
-                    var doc = XDocument.Load("Templates/Colors/Modifiers-ColorsToGenerations.xml");
-                    var renameNodes = doc.Root.Element("Rename").DescendantNodes().OfType<XElement>();
-                    var objPhysNodes = doc.Root.Element("MakeObjectPhysics").DescendantNodes().OfType<XElement>();
-                    var posYNodes = doc.Root.Element("PositionOffset").DescendantNodes().OfType<XElement>();
-                    var rotateNodes = doc.Root.Element("RotationOffset").DescendantNodes().OfType<XElement>();
-                    var paramNodes = doc.Root.Element("Param-Divide").DescendantNodes().OfType<XElement>();
-                    ColorstoGensRenamers = renameNodes.ToDictionary(n => n.Name.ToString(), n => n.Attribute("Value").Value);
-                    ColorstoGensObjPhys = objPhysNodes.ToDictionary(n => n.Name.ToString(), n => n.Value);
-                    ColorstoGensPosYMods = posYNodes.ToDictionary(n => n.Name.ToString(), n => n.Attribute("Y").Value);
-                    ColorstoGensRotateXMods = rotateNodes.ToDictionary(n => n.Name.ToString(), n => n.Attribute("X").Value);
-                    ColorstoGensRotateYMods = rotateNodes.ToDictionary(n => n.Name.ToString(), n => n.Attribute("Y").Value);
-                    ColorstoGensParamMods = paramNodes.ToDictionary(n => n.Name.ToString(), n => n.Attribute("Value").Value);
-                }
             }
 
             if (File.Exists("CpkMaker.dll"))
@@ -374,14 +357,25 @@ namespace SonicColorsSetEditor
                 }
                 else if (LoadedFilePath.ToLower().EndsWith(".set.xml"))
                 {
-                    ColorstoGensSetData = new ColorstoGensSetData();
-                    //ColorstoGensSetData.Header = SetData.Header;
-                    ColorstoGensSetData.Name = SetData.Name;
-                    ColorstoGensSetData.Objects = SetData.Objects;
-                    ColorstoGensSetData.GensExportXML(LoadedFilePath, TemplatesColors, ColorstoGensRenamers, ColorstoGensObjPhys, ColorstoGensPosYMods, ColorstoGensRotateXMods, ColorstoGensRotateYMods, ColorstoGensParamMods);
+                    // Load the Modifiers file
+                    if (File.Exists("Templates/Colors/Modifiers-ColorsToGenerations.xml"))
+                    {
+                        var doc = XDocument.Load("Templates/Colors/Modifiers-ColorsToGenerations.xml");
+                        var TemplatesGenerations = SetObjectType.LoadObjectTemplates(TemplatesPath, "Generations");
 
-                    MessageBox.Show("This feature is currently in development. In order to prevent bugs caused by the program remaining open after an export, the program will now close, but you may open it again immediately without consequence. Thank you for your understanding.");
-                    Application.Exit();
+                        ColorstoGensSetData = new ColorstoGensSetData();
+                        ColorstoGensSetData.Name = SetData.Name;
+                        ColorstoGensSetData.ObjectTemplates = TemplatesColors;
+                        ColorstoGensSetData.TargetTemplates = TemplatesGenerations;
+
+                        ColorstoGensSetData.GensExportXML(LoadedFilePath, SetData.Objects, doc);
+
+                        MessageBox.Show("Complete");
+                    }
+                    else
+                    {
+                        MessageBox.Show("No config file found (Templates/Colors/Modifiers-ColorsToGenerations.xml)");
+                    }
                 }
                 else if (LoadedFilePath.ToLower().EndsWith(".xml"))
                 {

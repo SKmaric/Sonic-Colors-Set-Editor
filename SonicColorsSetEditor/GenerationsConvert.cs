@@ -4,36 +4,35 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
+using System.Runtime.Serialization.Formatters.Binary;
 
 namespace HedgeLib.Sets
 {
     public class ColorstoGensSetData : ColorsSetData
     {
-        public void GensExportXML(string filePath,
-            Dictionary<string, SetObjectType> objectTemplates = null, 
-            Dictionary<string, string> ColorstoGensRenamers = null,
-            Dictionary<string, string> ColorstoGensObjPhys = null,
-            Dictionary<string, string> ColorstoGensPosYMods = null, 
-            Dictionary<string, string> ColorstoGensRotateXMods = null, 
-            Dictionary<string, string> ColorstoGensRotateYMods = null, 
-            Dictionary < string, string> ColorstoGensParamMods = null)
+        public Dictionary<string, SetObjectType> ObjectTemplates = null;
+        public Dictionary<string, SetObjectType> TargetTemplates = null;
+        Dictionary<string, string> ColorstoGensRenamers = null;
+        Dictionary<string, string> ColorstoGensObjPhys = null;
+        Dictionary<string, string> ColorstoGensPosYMods = null;
+        Dictionary<string, string> ColorstoGensRotateXMods = null;
+        Dictionary<string, string> ColorstoGensRotateYMods = null;
+        Dictionary<string, string> ColorstoGensParamMods = null;
+
+        public void GensExportXML(string filePath, List<SetObject> sourceObjects, XDocument doc)
         {
+            Objects = new List<SetObject>();
+            Objects = DeepCopy(sourceObjects);
+
+            LoadExportConfig(doc);
+
             using (var fileStream = File.OpenWrite(filePath))
             {
-                GensExportXML(fileStream, objectTemplates, ColorstoGensRenamers,
-                    ColorstoGensObjPhys, ColorstoGensPosYMods, ColorstoGensRotateXMods, 
-                    ColorstoGensRotateYMods, ColorstoGensParamMods);
+                GensExportXML(fileStream);
             }
         }
 
-        public void GensExportXML(Stream fileStream,
-            Dictionary<string, SetObjectType> objectTemplates = null, 
-            Dictionary<string, string> ColorstoGensRenamers = null,
-            Dictionary<string, string> ColorstoGensObjPhys = null,
-            Dictionary<string, string> ColorstoGensPosYMods = null, 
-            Dictionary<string, string> ColorstoGensRotateXMods = null, 
-            Dictionary<string, string> ColorstoGensRotateYMods = null, 
-            Dictionary < string, string> ColorstoGensParamMods = null)
+        public void GensExportXML(Stream fileStream)
         {
             // Convert to XML file and save
             var rootElem = new XElement("SetObject");
@@ -41,7 +40,7 @@ namespace HedgeLib.Sets
             foreach (var obj in Objects)
             {
                 // Skip objects with no template.
-                if (!objectTemplates.ContainsKey(obj.ObjectType)) continue;
+                if (!ObjectTemplates.ContainsKey(obj.ObjectType)) continue;
 
                 // Generate Object Element
                 string GensObjName = obj.ObjectType;
@@ -85,7 +84,8 @@ namespace HedgeLib.Sets
                 }
 
                 // Generate Parameters Element
-                var template = objectTemplates?[obj.ObjectType];
+                var template = ObjectTemplates?[obj.ObjectType];
+                var targetTemplate = TargetTemplates?[GensObjName];
 
                 for (int i = 0; i < obj.Parameters.Count; ++i)
                 {
@@ -341,5 +341,32 @@ namespace HedgeLib.Sets
                 return new XElement(rotElem);
             }
         }
+
+        private void LoadExportConfig(XDocument doc)
+        {
+            var renameNodes = doc.Root.Element("Rename").DescendantNodes().OfType<XElement>();
+            var objPhysNodes = doc.Root.Element("MakeObjectPhysics").DescendantNodes().OfType<XElement>();
+            var posYNodes = doc.Root.Element("PositionOffset").DescendantNodes().OfType<XElement>();
+            var rotateNodes = doc.Root.Element("RotationOffset").DescendantNodes().OfType<XElement>();
+            var paramNodes = doc.Root.Element("Param-Divide").DescendantNodes().OfType<XElement>();
+            ColorstoGensRenamers = renameNodes.ToDictionary(n => n.Attribute("Value").Value, n => n.Name.ToString());
+            ColorstoGensObjPhys = objPhysNodes.ToDictionary(n => n.Name.ToString(), n => n.Value);
+            ColorstoGensPosYMods = posYNodes.ToDictionary(n => n.Name.ToString(), n => n.Attribute("Y").Value);
+            ColorstoGensRotateXMods = rotateNodes.ToDictionary(n => n.Name.ToString(), n => n.Attribute("X").Value);
+            ColorstoGensRotateYMods = rotateNodes.ToDictionary(n => n.Name.ToString(), n => n.Attribute("Y").Value);
+            ColorstoGensParamMods = paramNodes.ToDictionary(n => n.Name.ToString(), n => n.Attribute("Value").Value);
+        }
+
+        public static T DeepCopy<T>(T item)
+        {
+            BinaryFormatter formatter = new BinaryFormatter();
+            MemoryStream stream = new MemoryStream();
+            formatter.Serialize(stream, item);
+            stream.Seek(0, SeekOrigin.Begin);
+            T result = (T)formatter.Deserialize(stream);
+            stream.Close();
+            return result;
+        }
+    }
     }
 }
