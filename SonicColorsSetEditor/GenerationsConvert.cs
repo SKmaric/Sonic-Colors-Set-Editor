@@ -14,6 +14,7 @@ namespace HedgeLib.Sets
         public Dictionary<string, SetObjectType> TargetTemplates = null;
         Dictionary<string, string> RenameDict = null;
         Dictionary<string, string> ObjPhysDict = null;
+        Dictionary<string, string> RemovalDict = null;
         Dictionary<string, Vector3> PositionOffsets = null;
         Dictionary<string, Vector3> RotationOffsets = null;
         Dictionary<string, string> ParamMods = null;
@@ -38,6 +39,9 @@ namespace HedgeLib.Sets
 
             foreach (var obj in Objects)
             {
+                // Skip objects set to be removed
+                if (RemovalDict.ContainsKey(obj.ObjectType)) continue;
+
                 // Skip objects with no template.
                 if (!ObjectTemplates.ContainsKey(obj.ObjectType)) continue;
 
@@ -361,12 +365,14 @@ namespace HedgeLib.Sets
         {
             var renameNodes = doc.Root.Element("Rename").DescendantNodes().OfType<XElement>();
             var objPhysNodes = doc.Root.Element("MakeObjectPhysics").DescendantNodes().OfType<XElement>();
+            var removalNodes = doc.Root.Element("RemoveObject").DescendantNodes().OfType<XElement>();
             var positionNodes = doc.Root.Element("PositionOffset").DescendantNodes().OfType<XElement>();
             var rotationNodes = doc.Root.Element("RotationOffset").DescendantNodes().OfType<XElement>();
             var paramNodes = doc.Root.Element("Param-Divide").DescendantNodes().OfType<XElement>();
 
             RenameDict = renameNodes.ToDictionary(n => n.Attribute("Value").Value, n => n.Name.ToString());
             ObjPhysDict = objPhysNodes.ToDictionary(n => n.Name.ToString(), n => n.Value);
+            RemovalDict = removalNodes.ToDictionary(n => n.Name.ToString(), n => n.Value);
             PositionOffsets = positionNodes.ToDictionary(n => n.Name.ToString(), n => new Vector3(
                 float.Parse(n.Attribute("X").Value),
                 float.Parse(n.Attribute("Y").Value),
