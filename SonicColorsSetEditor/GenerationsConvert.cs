@@ -17,7 +17,7 @@ namespace HedgeLib.Sets
         Dictionary<string, string> RemovalDict = null;
         Dictionary<string, Vector3> PositionOffsets = null;
         Dictionary<string, Vector3> RotationOffsets = null;
-        Dictionary<string, string> ParamMods = null;
+        Dictionary<string, List<ParamMods>> ParamMods = null;
 
         public void GensExportXML(string filePath, List<SetObject> sourceObjects, XDocument doc)
         {
@@ -112,7 +112,8 @@ namespace HedgeLib.Sets
                     int paramIndex = template.Parameters.FindIndex(nameCheck);
 
                     if (paramIndex >= 0)
-                        objElem.Add(GenerateParamElementGens(obj.Parameters[paramIndex], name));
+                        objElem.Add(GenerateParamElementGens(obj.Parameters[paramIndex], name, false,
+                            ParamMods.ContainsKey(obj.ObjectType) ? ParamMods[obj.ObjectType] : null ));
                     else
                     {
                         if (GensObjName == "ObjectPhysics" && name == "Type")
@@ -194,7 +195,7 @@ namespace HedgeLib.Sets
 
             // Sub-Methods
             XElement GenerateParamElementGens(
-                SetObjectParam param, string name)
+                SetObjectParam param, string name, bool ignoreMods = true, List<ParamMods> modifiers = null)
             {
                 var dataType = param.DataType;
                 var elem = new XElement((string.IsNullOrEmpty(name)) ?
@@ -209,9 +210,9 @@ namespace HedgeLib.Sets
                     // Scale
                     var tempVector3 = new Vector3();
                     tempVector3 = (Vector3)param.Data;
-                    tempVector3.X = (tempVector3.X / 10);
-                    tempVector3.Y = (tempVector3.Y / 10);
-                    tempVector3.Z = (tempVector3.Z / 10);
+                    tempVector3.X = (tempVector3.X * 0.1f);
+                    tempVector3.Y = (tempVector3.Y * 0.1f);
+                    tempVector3.Z = (tempVector3.Z * 0.1f);
                     param.Data = tempVector3;
 
                     Helpers.XMLWriteVector3(elem, (Vector3)param.Data);
@@ -224,13 +225,19 @@ namespace HedgeLib.Sets
                 {
                     var singleValue = new Single();
                     singleValue = float.Parse(param.Data.ToString());
+
+                    modifiers = ParamMods["all"];
+
                     // Parameter scaling
-                    foreach (var node in ParamMods)
+                    if (modifiers != null && ignoreMods != true)
                     {
-                        if (name.Contains(node.Key))
+                        foreach (var node in modifiers)
                         {
-                            singleValue = singleValue / float.Parse(node.Value.ToString());
-                            break;
+                            if (name.Contains(node.Name))
+                            {
+                                singleValue = singleValue * node.Factor;
+                                break;
+                            }
                         }
                     }
 
@@ -363,12 +370,12 @@ namespace HedgeLib.Sets
 
         private void LoadExportConfig(XDocument doc)
         {
-            var renameNodes = doc.Root.Element("Rename").DescendantNodes().OfType<XElement>();
-            var objPhysNodes = doc.Root.Element("MakeObjectPhysics").DescendantNodes().OfType<XElement>();
-            var removalNodes = doc.Root.Element("RemoveObject").DescendantNodes().OfType<XElement>();
-            var positionNodes = doc.Root.Element("PositionOffset").DescendantNodes().OfType<XElement>();
-            var rotationNodes = doc.Root.Element("RotationOffset").DescendantNodes().OfType<XElement>();
-            var paramNodes = doc.Root.Element("Param-Divide").DescendantNodes().OfType<XElement>();
+            var renameNodes = doc.Root.Element("Rename").Nodes().OfType<XElement>();
+            var objPhysNodes = doc.Root.Element("MakeObjectPhysics").Nodes().OfType<XElement>();
+            var removalNodes = doc.Root.Element("RemoveObject").Nodes().OfType<XElement>();
+            var positionNodes = doc.Root.Element("PositionOffset").Nodes().OfType<XElement>();
+            var rotationNodes = doc.Root.Element("RotationOffset").Nodes().OfType<XElement>();
+            var paramNodes = doc.Root.Element("ParamModify").Nodes().OfType<XElement>();
 
             RenameDict = renameNodes.ToDictionary(n => n.Attribute("Value").Value, n => n.Name.ToString());
             ObjPhysDict = objPhysNodes.ToDictionary(n => n.Name.ToString(), n => n.Value);
@@ -384,7 +391,26 @@ namespace HedgeLib.Sets
                 float.Parse(n.Attribute("Y").Value),
                 float.Parse(n.Attribute("Z").Value)
                 ));
-            ParamMods = paramNodes.ToDictionary(n => n.Name.ToString(), n => n.Attribute("Value").Value);
+            //ParamMods = paramNodes.ToDictionary(n => n.Name.ToString(), n => n.Attribute("Value").Value);
+
+            ParamMods = new Dictionary<string, List<ParamMods>>();
+            foreach (var item in paramNodes)
+            {
+                var parameters = new List<ParamMods>();
+                foreach (var param in item.Elements())
+                {
+                    parameters.Add(new ParamMods(param.Name.ToString(),
+                        param.Attribute("Rename") == null ? null : param.Attribute("Rename").Value,
+                        param.Attribute("Override") == null ? null : param.Attribute("Override").Value,
+                        param.Attribute("Factor") == null ? 1 : float.Parse(param.Attribute("Factor").Value),
+                        param.Attribute("Offset") == null ? 0 : float.Parse(param.Attribute("Offset").Value),
+                        param.Attribute("BoolFlip") == null ? false : bool.Parse(param.Attribute("BoolFlip").Value),
+                        param.Attribute("EnumString") == null ? false : bool.Parse(param.Attribute("EnumString").Value),
+                        param.Attribute("Condition") == null ? null : param.Attribute("Condition").Value
+                        ));
+                }
+                ParamMods.Add(item.Name.ToString(), parameters);
+            }
         }
 
         public static T DeepCopy<T>(T item)
@@ -402,11 +428,26 @@ namespace HedgeLib.Sets
     public class ParamMods
     {
         // Variables/Constants
-        public string name;
-        public string rename;
-        public float factor;
-        public float offset;
-        public bool boolFlip;
-        public bool enumstring;
+        public string Name;
+        public string Rename;
+        public string ValueOverride;
+        public float Factor;
+        public float Offset;
+        public bool BoolFlip;
+        public bool EnumString;
+        public string Condition;
+
+        public ParamMods(string name, string rename, string valueoverride, float factor,
+            float offset, bool boolflip, bool enumstring, string condition)
+        {
+            Name = name;
+            Rename = rename;
+            ValueOverride = valueoverride;
+            Factor = factor;
+            Offset = offset;
+            BoolFlip = boolflip;
+            EnumString = enumstring;
+            Condition = condition;
+        }
     }
 }
