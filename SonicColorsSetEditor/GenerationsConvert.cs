@@ -18,6 +18,7 @@ namespace HedgeLib.Sets
         Dictionary<string, Vector3> PositionOffsets = null;
         Dictionary<string, Vector3> RotationOffsets = null;
         Dictionary<string, List<ParamMods>> ParamMods = null;
+        private int offsetIDs = 0;
 
         public void GensExportXML(string filePath, List<SetObject> sourceObjects, XDocument doc)
         {
@@ -221,7 +222,7 @@ namespace HedgeLib.Sets
                 objElem.Add(GenerateRotationElement(obj.Transform, obj.ObjectType, RotationOffset));
 
                 // Generate ID Element
-                var objIDAttr = new XElement("SetObjectID", obj.ObjectID);
+                var objIDAttr = new XElement("SetObjectID", obj.ObjectID + offsetIDs);
                 objElem.Add(objIDAttr);
 
                 // Generate MultiSet Elements
@@ -386,6 +387,16 @@ namespace HedgeLib.Sets
                 {
                     // Boolean caps
                     elem.Value = param.Data.ToString().ToLowerInvariant();
+                }
+                else if (new string[] { "Target", "ACameraID", "BCameraID", "ALinkObjID", "BLinkObjID" }.Contains(name))
+                {
+                    // Workaround for target obj id parameters
+                    // Offset if necessary
+                    int temp = (int)(uint)param.Data;
+                    temp += offsetIDs;
+
+                    var targetIDAttr = new XElement("SetObjectID", temp.ToString());
+                    elem.Add(targetIDAttr);
                 }
                 else if (param.Data != null)
                 {
