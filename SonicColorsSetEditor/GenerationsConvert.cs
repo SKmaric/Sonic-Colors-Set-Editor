@@ -48,60 +48,129 @@ namespace HedgeLib.Sets
                 // Generate Object Element
                 string GensObjName = obj.ObjectType;
                 // Rename if applicable
-                foreach (var node in RenameDict)
-                {
-                    if (obj.ObjectType == node.Key)
-                    {
-                        GensObjName = node.Value;
-                    }
-                }
+                if (RenameDict.ContainsKey(obj.ObjectType))
+                    GensObjName = RenameDict[obj.ObjectType];
+                //todo: rename condition
 
                 // Change to ObjectPhysics if necessary
-                foreach (var node in ObjPhysDict)
-                {
-                    if (obj.ObjectType == node.Key)
-                    {
-                        //var param = new SetObjectParam();
-                        //param.DataType = typeof(string);
-                        //param.Data = obj.ObjectType;
-                        //objElem.Add(GenerateParamElementGens(param, "Type"));
-                        GensObjName = "ObjectPhysics";
-                    }
-                }
+                if (ObjPhysDict.ContainsKey(obj.ObjectType))
+                    GensObjName = "ObjectPhysics";
 
                 var objElem = new XElement(GensObjName);
 
-                // Generate CustomData Element
-                // Messy use RangeOut value as Range value.
-                foreach (var customData in obj.CustomData)
+                //// Generate CustomData Element
+                //// Messy use RangeOut value as Range value.
+                //foreach (var customData in obj.CustomData)
+                //{
+                //    // Experimental - use RangeIn as Range for SoundPoint
+                //    if (customData.Key == "RangeIn")
+                //    {
+                //        if (obj.ObjectType == "EnvSound")
+                //        {
+                //            objElem.Add(GenerateParamElementGens(
+                //                customData.Value, "Range"));
+                //        }
+                //    }
+                //    else if (customData.Key == "RangeOut")
+                //    {
+                //        if (obj.ObjectType == "EnvSound")
+                //        {
+                //            objElem.Add(GenerateParamElementGens(
+                //                customData.Value, "Radius"));
+                //        }
+                //        else
+                //        {
+                //            objElem.Add(GenerateParamElementGens(
+                //                customData.Value, "Range"));
+                //        }
+                //    }
+                //}
+
+                var sourcetemplate = ObjectTemplates?[obj.ObjectType];
+                var template = new SetObjectType();
+
+                // Apply modifiers
+                bool ignoreModifiers = false;
+                if (!ignoreModifiers)
                 {
-                    // Experimental - use RangeIn as Range for SoundPoint
-                    if (customData.Key == "RangeIn")
+                    List<ParamMods> objmodifiers = ParamMods.ContainsKey(GensObjName) ? ParamMods[GensObjName] : null;
+                    List<ParamMods> generalmodifiers = ParamMods.ContainsKey("all") ? ParamMods["all"] : null;
+
+                    // Deep copy template parameters
+                    template.Name = sourcetemplate.Name;
+                    template.Category = sourcetemplate.Category;
+                    template.Extras = sourcetemplate.Extras;
+                    template.Parameters = new List<SetObjectTypeParam>();
+                    foreach (SetObjectTypeParam n in sourcetemplate.Parameters)
                     {
-                        if (obj.ObjectType == "EnvSound")
-                        {
-                            objElem.Add(GenerateParamElementGens(
-                                customData.Value, "Range"));
-                        }
+                        var p = new SetObjectTypeParam();
+                        p.Name = String.Copy(n.Name);
+                        p.DataType = n.DataType;
+                        p.DefaultValue = n.DataType;
+                        p.Description = n.Description;
+                        p.Enums = n.Enums;
+
+                        template.Parameters.Add(p);
                     }
-                    else if (customData.Key == "RangeOut")
+
+                    for (int i = 0; i < obj.Parameters.Count; ++i)
                     {
-                        if (obj.ObjectType == "EnvSound")
+                        string name = template?.Parameters[i].Name; // Store original parameter name in case of renames
+                        SetObjectParam param = obj.Parameters[i];
+                        var dataType = param.DataType;
+
+                        List<ParamMods> modifiers = new List<ParamMods>();
+
+                        if (objmodifiers != null)
                         {
-                            objElem.Add(GenerateParamElementGens(
-                                customData.Value, "Radius"));
+                            foreach (var node in objmodifiers)
+                            {
+                                if (node.Name == name)
+                                {
+                                    modifiers.Add(node);
+                                }
+                            }
                         }
-                        else
+
+                        if (modifiers.Count > 0)
                         {
-                            objElem.Add(GenerateParamElementGens(
-                                customData.Value, "Range"));
+                            foreach (var mods in modifiers)
+                            {
+                                //todo: check condition
+                                {
+                                    // Rename
+                                    if (mods.Rename != null)
+                                        template.Parameters[i].Name = mods.Rename;
+
+                                    param = ApplyParamMods(param, mods, template.Parameters[i].Enums);
+                                }
+                            }
+                        }
+                        else if (generalmodifiers != null)
+                        {
+                            // Use "all" parameter mods only if no mods for this specific object's parameter exist
+                            // todo: more mods
+                            foreach (var node in generalmodifiers)
+                            {
+                                if (name.Contains(node.Name))
+                                {
+                                    //todo: check condition
+                                    {
+                                        param = ApplyParamMods(param, node, template.Parameters[i].Enums);
+                                        break;
+                                    }
+                                }
+                            }
                         }
                     }
                 }
+                else
+                {
+                    template = sourcetemplate;
+                }
 
-                // Generate Parameters Element
-                var template = ObjectTemplates?[obj.ObjectType];
-                var targetTemplate = TargetTemplates?[GensObjName];
+
+                var targetTemplate = TargetTemplates.ContainsKey(GensObjName) ? TargetTemplates?[GensObjName] : template;
 
                 for (int i = 0; i < targetTemplate.Parameters.Count; ++i)
                 {
@@ -112,13 +181,12 @@ namespace HedgeLib.Sets
                     int paramIndex = template.Parameters.FindIndex(nameCheck);
 
                     if (paramIndex >= 0)
-                        objElem.Add(GenerateParamElementGens(obj.Parameters[paramIndex], name, false,
-                            ParamMods.ContainsKey(obj.ObjectType) ? ParamMods[obj.ObjectType] : null ));
+                        objElem.Add(GenerateParamElementGens(obj.Parameters[paramIndex], name));
                     else
                     {
                         if (GensObjName == "ObjectPhysics" && name == "Type")
                         {
-                            //default value
+                            //ObjectPhysics type name
                             var param = new SetObjectParam();
                             param.DataType = typeof(string);
                             param.Data = obj.ObjectType.ToString();
@@ -194,8 +262,96 @@ namespace HedgeLib.Sets
             xml.Save(fileStream);
 
             // Sub-Methods
+
+            SetObjectParam ApplyParamMods(SetObjectParam param, ParamMods mods, List<SetObjectTypeParamEnum> enums)
+            {
+                var dataType = param.DataType;
+
+                // Override
+                if (mods.ValueOverride != null)
+                {
+                    param.DataType = typeof(string);
+                    param.Data = mods.ValueOverride;
+                }
+
+                // Factor/multiplication
+                if (mods.Factor != 1)
+                {
+                    if (dataType == typeof(float))
+                    {
+                        float temp = (float)param.Data;
+                        temp = temp * mods.Factor;
+                        param.Data = temp;
+                    }
+                    else if (dataType == typeof(Vector3))
+                    {
+                        Vector3 temp = (Vector3)param.Data;
+                        temp = temp * mods.Factor;
+                        param.Data = temp;
+                    }
+                }
+
+                // Offset
+                if (mods.Offset != 0)
+                {
+                    if (dataType == typeof(float))
+                    {
+                        float temp = (float)param.Data;
+                        temp = temp + mods.Offset;
+                        param.Data = temp;
+                    }
+                    else if (dataType == typeof(uint))
+                    {
+                        uint temp = (uint)param.Data;
+                        temp = temp + (uint)mods.Offset;
+                        param.Data = temp;
+                    }
+                }
+
+                // Invert boolean
+                if (mods.BoolFlip)
+                {
+                    if (dataType == typeof(bool))
+                    {
+                        bool temp = (bool)param.Data;
+                        temp = !temp;
+                        param.Data = temp;
+                    }
+                    else if (dataType == typeof(uint))
+                    {
+                        uint temp = (uint)param.Data;
+                        if (temp == 0)
+                            temp = 1;
+                        else if (temp == 1)
+                            temp = 0;
+                        param.Data = temp;
+                    }
+                }
+
+                // Swap to enum string value
+                if (mods.EnumString)
+                {
+                    if (dataType == typeof(uint))
+                    {
+                        uint temp = (uint)param.Data;
+                        object value = temp;
+                        foreach (var item in enums)
+                        {
+                            if ((uint)item.Value == temp)
+                            {
+                                value = item.Description;
+                            }
+                        }
+                        param.DataType = typeof(string);
+                        param.Data = value;
+                    }
+                }
+
+                return param;
+            }
+
             XElement GenerateParamElementGens(
-                SetObjectParam param, string name, bool ignoreMods = true, List<ParamMods> modifiers = null)
+                SetObjectParam param, string name)
             {
                 var dataType = param.DataType;
                 var elem = new XElement((string.IsNullOrEmpty(name)) ?
@@ -207,14 +363,6 @@ namespace HedgeLib.Sets
                 }
                 else if (dataType == typeof(Vector3))
                 {
-                    // Scale
-                    var tempVector3 = new Vector3();
-                    tempVector3 = (Vector3)param.Data;
-                    tempVector3.X = (tempVector3.X * 0.1f);
-                    tempVector3.Y = (tempVector3.Y * 0.1f);
-                    tempVector3.Z = (tempVector3.Z * 0.1f);
-                    param.Data = tempVector3;
-
                     Helpers.XMLWriteVector3(elem, (Vector3)param.Data);
                 }
                 else if (dataType == typeof(Vector4) || dataType == typeof(Quaternion))
@@ -223,54 +371,21 @@ namespace HedgeLib.Sets
                 }
                 else if (dataType == typeof(Single))
                 {
-                    var singleValue = new Single();
-                    singleValue = float.Parse(param.Data.ToString());
-
-                    modifiers = ParamMods["all"];
-
-                    // Parameter scaling
-                    if (modifiers != null && ignoreMods != true)
-                    {
-                        foreach (var node in modifiers)
-                        {
-                            if (name.Contains(node.Name))
-                            {
-                                singleValue = singleValue * node.Factor;
-                                break;
-                            }
-                        }
-                    }
-
+                    float singleValue = (float)param.Data;
                     if (System.Math.Abs(singleValue) < 1)
                     {
-                        elem.Value = singleValue.ToString("0.########################"); 
-                        // Prevent scientific notation
+                        elem.Value = singleValue.ToString("0.########################");// Prevent scientific notation
                     }
                     else
                     {
                         elem.Value = singleValue.ToString(
-                            "#################################.########################"); 
-                        // Prevent scientific notation
+                            "#################################.########################");// Prevent scientific notation
                     }
                 }
-                else if ((name == "ACameraID") || (name == "BCameraID") 
-                    || (name == "ALinkObjID") || (name == "BLinkObjID"))
-                {
-                    var targetIDAttr = new XElement("SetObjectID", param.Data.ToString());
-                    elem.Add(targetIDAttr);
-                }
-                else if(param.DataType == typeof(Boolean))
+                else if (param.DataType == typeof(Boolean))
                 {
                     // Boolean caps
-                    elem.Value = param.Data.ToString();
-                    if (param.Data.ToString() == "True")
-                    {
-                        elem.Value = "true";
-                    }
-                    else if (param.Data.ToString() == "False")
-                    {
-                        elem.Value = "false";
-                    }
+                    elem.Value = param.Data.ToString().ToLowerInvariant();
                 }
                 else if (param.Data != null)
                 {
@@ -377,7 +492,7 @@ namespace HedgeLib.Sets
             var rotationNodes = doc.Root.Element("RotationOffset").Nodes().OfType<XElement>();
             var paramNodes = doc.Root.Element("ParamModify").Nodes().OfType<XElement>();
 
-            RenameDict = renameNodes.ToDictionary(n => n.Attribute("Value").Value, n => n.Name.ToString());
+            RenameDict = renameNodes.ToDictionary(n => n.Attribute("Value").Value, n => n.Name.ToString()); // Invert to get around xml limitations
             ObjPhysDict = objPhysNodes.ToDictionary(n => n.Name.ToString(), n => n.Value);
             RemovalDict = removalNodes.ToDictionary(n => n.Name.ToString(), n => n.Value);
             PositionOffsets = positionNodes.ToDictionary(n => n.Name.ToString(), n => new Vector3(
