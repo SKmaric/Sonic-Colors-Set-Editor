@@ -387,11 +387,11 @@ namespace HedgeLib.Sets
                 }
                 else if (dataType == typeof(Vector3))
                 {
-                    Helpers.XMLWriteVector3(elem, (Vector3)param.Data);
+                    elem.AddElem((Vector3)param.Data);
                 }
                 else if (dataType == typeof(Vector4) || dataType == typeof(Quaternion))
                 {
-                    Helpers.XMLWriteVector4(elem, (Vector4)param.Data);
+                    elem.AddElem((Vector4)param.Data);
                 }
                 else if (dataType == typeof(Single))
                 {
@@ -435,13 +435,14 @@ namespace HedgeLib.Sets
                 // Convert Position into elements.
                 var posElem = new XElement("Position");
 
-                //Scaling
+                // Scaling
                 transform.Position = transform.Position * 0.1f;
 
-                //Offset
+                // Offset
+                //todo: base off rotation instead of global
                 transform.Position += positionOffset;
 
-                Helpers.XMLWriteVector3(posElem, transform.Position);
+                posElem.AddElem(transform.Position);
 
                 // Add elements to new position element and return it.
                 return new XElement(posElem);
@@ -454,6 +455,7 @@ namespace HedgeLib.Sets
                 var rotElem = new XElement("Rotation");
 
                 // Rotate objects that need it
+                //todo: implement properly instead of being limited by 90 degrees
                 if (rotationOffset.X != 0 || rotationOffset.Y != 0)
                 {
                     var temp = transform.Rotation.ToEulerAngles();
@@ -510,7 +512,7 @@ namespace HedgeLib.Sets
                     }
                 }
 
-                Helpers.XMLWriteVector4(rotElem, transform.Rotation);
+                rotElem.AddElem(transform.Rotation);
 
                 // Add elements to new rotation element and return it.
                 return new XElement(rotElem);
