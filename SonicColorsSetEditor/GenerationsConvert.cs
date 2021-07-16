@@ -114,6 +114,26 @@ namespace HedgeLib.Sets
                         template.Parameters.Add(p);
                     }
 
+                    // Add customdata to parameters
+                    // RangeIn 
+                    foreach (var customData in obj.CustomData)
+                    {
+                        if (customData.Key == "RangeIn" || customData.Key == "RangeOut")
+                        {
+                            var p = new SetObjectTypeParam();
+                            var o = new SetObjectParam();
+
+                            p.Name = String.Copy(customData.Key);
+                            p.DataType = customData.Value.DataType;
+                            o.DataType = customData.Value.DataType;
+                            o.Data = customData.Value.Data;
+
+                            template.Parameters.Add(p);
+                            obj.Parameters.Add(o);
+                        }
+                    }
+
+                    // Apply modifiers to parameters
                     for (int i = 0; i < obj.Parameters.Count; ++i)
                     {
                         string name = template?.Parameters[i].Name; // Store original parameter name in case of renames
@@ -151,13 +171,17 @@ namespace HedgeLib.Sets
                         {
                             // Use "all" parameter mods only if no mods for this specific object's parameter exist
                             // todo: more mods
-                            foreach (var node in generalmodifiers)
+                            foreach (var mods in generalmodifiers)
                             {
-                                if (name.Contains(node.Name))
+                                if (name.Contains(mods.Name))
                                 {
                                     //todo: check condition
                                     {
-                                        param = ApplyParamMods(param, node, template.Parameters[i].Enums);
+                                        // Rename
+                                        if (mods.Rename != null)
+                                            template.Parameters[i].Name = mods.Rename;
+
+                                        param = ApplyParamMods(param, mods, template.Parameters[i].Enums);
                                         break;
                                     }
                                 }
@@ -169,7 +193,6 @@ namespace HedgeLib.Sets
                 {
                     template = sourcetemplate;
                 }
-
 
                 var targetTemplate = TargetTemplates.ContainsKey(GensObjName) ? TargetTemplates?[GensObjName] : template;
 
