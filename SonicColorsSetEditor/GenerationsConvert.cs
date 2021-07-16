@@ -58,35 +58,6 @@ namespace HedgeLib.Sets
                     GensObjName = "ObjectPhysics";
 
                 var objElem = new XElement(GensObjName);
-
-                //// Generate CustomData Element
-                //// Messy use RangeOut value as Range value.
-                //foreach (var customData in obj.CustomData)
-                //{
-                //    // Experimental - use RangeIn as Range for SoundPoint
-                //    if (customData.Key == "RangeIn")
-                //    {
-                //        if (obj.ObjectType == "EnvSound")
-                //        {
-                //            objElem.Add(GenerateParamElementGens(
-                //                customData.Value, "Range"));
-                //        }
-                //    }
-                //    else if (customData.Key == "RangeOut")
-                //    {
-                //        if (obj.ObjectType == "EnvSound")
-                //        {
-                //            objElem.Add(GenerateParamElementGens(
-                //                customData.Value, "Radius"));
-                //        }
-                //        else
-                //        {
-                //            objElem.Add(GenerateParamElementGens(
-                //                customData.Value, "Range"));
-                //        }
-                //    }
-                //}
-
                 var sourcetemplate = ObjectTemplates?[obj.ObjectType];
                 var template = new SetObjectType();
 
@@ -157,7 +128,7 @@ namespace HedgeLib.Sets
                         {
                             foreach (var mods in modifiers)
                             {
-                                //todo: check condition
+                                if (HandleParamModCond(mods.Condition, obj, template))
                                 {
                                     // Rename
                                     if (mods.Rename != null)
@@ -175,7 +146,7 @@ namespace HedgeLib.Sets
                             {
                                 if (name.Contains(mods.Name))
                                 {
-                                    //todo: check condition
+                                    if (HandleParamModCond(mods.Condition, obj, template))
                                     {
                                         // Rename
                                         if (mods.Rename != null)
@@ -286,6 +257,111 @@ namespace HedgeLib.Sets
             xml.Save(fileStream);
 
             // Sub-Methods
+            bool HandleParamModCond(string condition, SetObject obj, SetObjectType template)
+            {
+                // Return success if no condition set
+                if (condition == null)
+                    return true;
+
+                bool result = false;
+
+                char separatorType = ';';
+
+                // : equal, ! not equal, < lesser, > greater
+                foreach (char type in new List<char> { ':','!','<','>' })
+                {
+                    int test = condition.IndexOf(type);
+                    if (test >= 0)
+                    {
+                        separatorType = type;
+                        break;
+                    }
+                }
+
+                if (separatorType == ';')
+                {
+                    Console.Write("Invalid condition type key / condition type key not found.");
+                    return true;
+                }
+
+                int separatorIndex = condition.IndexOf(separatorType);
+                string key = condition.Substring(0, separatorIndex);
+                string value = condition.Substring(separatorIndex + 1, condition.Length - (separatorIndex + 1));
+
+                if (key == "OriginalName")
+                {
+                    if (separatorType == ':')
+                    {
+                        if (value == template.Name)
+                            result = true;
+                    }
+                    else if (separatorType == '!')
+                    {
+                        if (value != template.Name)
+                            result = true;
+                    }
+                    else
+                    {
+                        Console.Write("Invalid type key for this condition. (" + condition + ")");
+                        return true;
+                    }
+                }
+                else
+                {
+                    for (int i = 0; i < template.Parameters.Count; ++i)
+                    {
+                        if (key == template.Parameters[i].Name)
+                        {
+                            if (separatorType == ':')
+                            {
+                                if (value == obj.Parameters[i].Data.ToString())
+                                    result = true;
+                            }
+                            else if (separatorType == '!')
+                            {
+                                if (value != obj.Parameters[i].Data.ToString())
+                                    result = true;
+                            }
+                            else
+                            {
+                                Single compvalue;
+
+                                if (Single.TryParse(value, out compvalue))
+                                {
+                                    if (obj.Parameters[i].DataType == typeof(uint) || 
+                                        obj.Parameters[i].DataType == typeof(int) || 
+                                        obj.Parameters[i].DataType == typeof(float))
+                                    {
+                                        var paramvalue = float.Parse(obj.Parameters[i].DataType.ToString());
+
+                                        if (separatorType == '<')
+                                        {
+                                            if (paramvalue <= compvalue)
+                                                result = true;
+                                        }
+                                        else if (separatorType == '>')
+                                        {
+                                            if (paramvalue >= compvalue)
+                                                result = true;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        Console.Write("Invalid type key for this datatype. (" + obj.Parameters[i].DataType + ")");
+                                        return true;
+                                    }
+                                }
+                                else
+                                {
+                                    Console.Write("Invalid value for this condition. (" + condition + ")");
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
+                return result;
+            }
 
             SetObjectParam ApplyParamMods(SetObjectParam param, ParamMods mods, List<SetObjectTypeParamEnum> enums)
             {
