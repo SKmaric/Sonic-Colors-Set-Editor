@@ -12,7 +12,7 @@ namespace HedgeLib.Sets
     {
         public Dictionary<string, SetObjectType> ObjectTemplates = null;
         public Dictionary<string, SetObjectType> TargetTemplates = null;
-        Dictionary<string, string> RenameDict = null;
+        Dictionary<string, string[]> RenameDict = null;
         Dictionary<string, string> ObjPhysDict = null;
         Dictionary<string, string> RemovalDict = null;
         Dictionary<string, Vector3> PositionOffsets = null;
@@ -48,17 +48,23 @@ namespace HedgeLib.Sets
 
                 // Generate Object Element
                 string GensObjName = obj.ObjectType;
+
+                // Retrieve original template before any changes are made
+                var sourcetemplate = ObjectTemplates?[obj.ObjectType];
+
                 // Rename if applicable
                 if (RenameDict.ContainsKey(obj.ObjectType))
-                    GensObjName = RenameDict[obj.ObjectType];
-                //todo: rename condition
+                {
+                    if (HandleParamModCond(RenameDict[obj.ObjectType][1], obj, sourcetemplate))
+                        GensObjName = RenameDict[obj.ObjectType][0];
+                }
 
                 // Change to ObjectPhysics if necessary
                 if (ObjPhysDict.ContainsKey(obj.ObjectType))
                     GensObjName = "ObjectPhysics";
 
+                // Generate new element + template
                 var objElem = new XElement(GensObjName);
-                var sourcetemplate = ObjectTemplates?[obj.ObjectType];
                 var template = new SetObjectType();
 
                 // Apply modifiers
@@ -597,7 +603,11 @@ namespace HedgeLib.Sets
             var rotationNodes = doc.Root.Element("RotationOffset").Nodes().OfType<XElement>();
             var paramNodes = doc.Root.Element("ParamModify").Nodes().OfType<XElement>();
 
-            RenameDict = renameNodes.ToDictionary(n => n.Attribute("Value").Value, n => n.Name.ToString()); // Invert to get around xml limitations
+            RenameDict = renameNodes.ToDictionary(n => n.Attribute("Value").Value, n => new string[]{
+                n.Name.ToString(),
+                n.Attribute("Condition") == null ? null : n.Attribute("Condition").Value
+            }); // Invert to get around xml limitations
+
             ObjPhysDict = objPhysNodes.ToDictionary(n => n.Name.ToString(), n => n.Value);
             RemovalDict = removalNodes.ToDictionary(n => n.Name.ToString(), n => n.Value);
             PositionOffsets = positionNodes.ToDictionary(n => n.Name.ToString(), n => new Vector3(
