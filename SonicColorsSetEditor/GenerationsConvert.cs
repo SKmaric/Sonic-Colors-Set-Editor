@@ -334,20 +334,25 @@ namespace HedgeLib.Sets
 
                                 if (Single.TryParse(value, out compvalue))
                                 {
-                                    if (obj.Parameters[i].DataType == typeof(uint) || 
+                                    if (obj.Parameters[i].DataType == typeof(byte) ||
+                                        obj.Parameters[i].DataType == typeof(sbyte) ||
+                                        obj.Parameters[i].DataType == typeof(short) ||
+                                        obj.Parameters[i].DataType == typeof(ushort) ||
                                         obj.Parameters[i].DataType == typeof(int) || 
-                                        obj.Parameters[i].DataType == typeof(float))
+                                        obj.Parameters[i].DataType == typeof(uint) || 
+                                        obj.Parameters[i].DataType == typeof(float) ||
+                                        obj.Parameters[i].DataType == typeof(double))
                                     {
-                                        var paramvalue = float.Parse(obj.Parameters[i].DataType.ToString());
+                                        var paramvalue = float.Parse(obj.Parameters[i].Data.ToString());
 
                                         if (separatorType == '<')
                                         {
-                                            if (paramvalue <= compvalue)
+                                            if (paramvalue < compvalue)
                                                 result = true;
                                         }
                                         else if (separatorType == '>')
                                         {
-                                            if (paramvalue >= compvalue)
+                                            if (paramvalue > compvalue)
                                                 result = true;
                                         }
                                     }
@@ -389,21 +394,55 @@ namespace HedgeLib.Sets
                         temp = temp * mods.Factor;
                         param.Data = temp;
                     }
+                    else if (dataType == typeof(double))
+                    {
+                        double temp = (double)param.Data;
+                        temp = temp * mods.Factor;
+                        param.Data = temp;
+                    }
                     else if (dataType == typeof(Vector3))
                     {
                         Vector3 temp = (Vector3)param.Data;
                         temp = temp * mods.Factor;
                         param.Data = temp;
                     }
+                    else
+                    {
+                        Console.Write("Invalid type key for this datatype. (" + dataType + ")");
+                    }
                 }
 
                 // Offset
                 if (mods.Offset != 0)
                 {
-                    if (dataType == typeof(float))
+                    if (dataType == typeof(byte))
                     {
-                        float temp = (float)param.Data;
-                        temp = temp + mods.Offset;
+                        int temp = (byte)param.Data;
+                        temp = temp + (int)mods.Offset;
+                        param.Data = (byte)temp;
+                    }
+                    else if (dataType == typeof(sbyte))
+                    {
+                        int temp = (sbyte)param.Data;
+                        temp = temp + (int)mods.Offset;
+                        param.Data = (sbyte)temp;
+                    }
+                    else if (dataType == typeof(short))
+                    {
+                        int temp = (short)param.Data;
+                        temp = temp + (int)mods.Offset;
+                        param.Data = (short)temp;
+                    }
+                    else if (dataType == typeof(ushort))
+                    {
+                        int temp = (ushort)param.Data;
+                        temp = temp + (int)mods.Offset;
+                        param.Data = (ushort)temp;
+                    }
+                    else if (dataType == typeof(int))
+                    {
+                        int temp = (int)param.Data;
+                        temp = temp + (int)mods.Offset;
                         param.Data = temp;
                     }
                     else if (dataType == typeof(uint))
@@ -411,6 +450,22 @@ namespace HedgeLib.Sets
                         uint temp = (uint)param.Data;
                         temp = temp + (uint)mods.Offset;
                         param.Data = temp;
+                    }
+                    else if (dataType == typeof(float))
+                    {
+                        var temp = (float)param.Data;
+                        temp = temp + mods.Offset;
+                        param.Data = temp;
+                    }
+                    else if (dataType == typeof(double))
+                    {
+                        var temp = (double)param.Data;
+                        temp = temp + mods.Offset;
+                        param.Data = temp;
+                    }
+                    else
+                    {
+                        Console.Write("Invalid type key for this datatype. (" + dataType + ")");
                     }
                 }
 
@@ -423,21 +478,21 @@ namespace HedgeLib.Sets
                         temp = !temp;
                         param.Data = temp;
                     }
-                    else if (dataType == typeof(uint))
+                    else
                     {
-                        uint temp = (uint)param.Data;
-                        if (temp == 0)
-                            temp = 1;
-                        else if (temp == 1)
-                            temp = 0;
-                        param.Data = temp;
+                        Console.Write("Invalid type key for this datatype. (" + dataType + ")");
                     }
                 }
 
                 // Swap to enum string value
                 if (mods.EnumString)
                 {
-                    if (dataType == typeof(uint))
+                    if (dataType == typeof(byte) ||
+                        dataType == typeof(sbyte) ||
+                        dataType == typeof(short) ||
+                        dataType == typeof(ushort) ||
+                        dataType == typeof(int) ||
+                        dataType == typeof(uint))
                     {
                         uint temp = (uint)param.Data;
                         object value = temp;
@@ -450,6 +505,10 @@ namespace HedgeLib.Sets
                         }
                         param.DataType = typeof(string);
                         param.Data = value;
+                    }
+                    else
+                    {
+                        Console.Write("Invalid type key for this datatype. (" + dataType + ")");
                     }
                 }
 
@@ -548,7 +607,6 @@ namespace HedgeLib.Sets
                             temp.X = -90 + System.Math.Abs(temp.Z);
                             temp.Y = rotationOffset.X * -1;
                             temp.Z = -90;
-                            Console.WriteLine("X rotation");
                             // This is necessary since conversion between
                             // Vector 3 and Quaternion is wonky
                             var Rotation = new Quaternion(temp);
