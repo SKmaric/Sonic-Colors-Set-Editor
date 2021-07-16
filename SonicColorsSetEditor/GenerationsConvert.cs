@@ -109,6 +109,7 @@ namespace HedgeLib.Sets
                             obj.Parameters.Add(o);
                         }
                     }
+                    var origobj = DeepCopy(obj);
 
                     // Apply modifiers to parameters
                     for (int i = 0; i < obj.Parameters.Count; ++i)
@@ -134,7 +135,7 @@ namespace HedgeLib.Sets
                         {
                             foreach (var mods in modifiers)
                             {
-                                if (HandleParamModCond(mods.Condition, obj, template))
+                                if (HandleParamModCond(mods.Condition, origobj, template))
                                 {
                                     // Rename
                                     if (mods.Rename != null)
@@ -152,7 +153,7 @@ namespace HedgeLib.Sets
                             {
                                 if (name.Contains(mods.Name))
                                 {
-                                    if (HandleParamModCond(mods.Condition, obj, template))
+                                    if (HandleParamModCond(mods.Condition, origobj, template))
                                     {
                                         // Rename
                                         if (mods.Rename != null)
