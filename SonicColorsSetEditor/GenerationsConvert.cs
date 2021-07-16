@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Xml.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Numerics;
 
 namespace HedgeLib.Sets
 {
@@ -574,7 +575,11 @@ namespace HedgeLib.Sets
                 transform.Position = transform.Position * 0.1f;
 
                 // Offset
-                //todo: base off rotation instead of global
+                var magnitude = new System.Numerics.Vector3(positionOffset.X, positionOffset.Y, positionOffset.Z);
+                var quaternion = new System.Numerics.Quaternion(transform.Rotation.X, transform.Rotation.Y, transform.Rotation.Z, transform.Rotation.W);
+                magnitude = System.Numerics.Vector3.Transform(magnitude, quaternion);
+                positionOffset = new Vector3(magnitude.X, magnitude.Y, magnitude.Z);
+
                 transform.Position += positionOffset;
 
                 posElem.AddElem(transform.Position);
