@@ -396,15 +396,8 @@ namespace HedgeLib.Sets
                 else if (dataType == typeof(Single))
                 {
                     float singleValue = (float)param.Data;
-                    if (System.Math.Abs(singleValue) < 1)
-                    {
-                        elem.Value = singleValue.ToString("0.########################");// Prevent scientific notation
-                    }
-                    else
-                    {
-                        elem.Value = singleValue.ToString(
-                            "#################################.########################");// Prevent scientific notation
-                    }
+                    elem.Value = singleValue.ToString("0.#######");// Prevent scientific notation
+
                 }
                 else if (param.DataType == typeof(Boolean))
                 {
