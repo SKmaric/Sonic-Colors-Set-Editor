@@ -19,7 +19,7 @@ namespace HedgeLib.Sets
         Dictionary<string, Vector3> PositionOffsets = null;
         Dictionary<string, Vector3> RotationOffsets = null;
         Dictionary<string, List<ParamMods>> ParamMods = null;
-        private int offsetIDs = 0;
+        private int OffsetIDs = 0;
 
         public void GensExportXML(string filePath, List<SetObject> sourceObjects, XDocument doc)
         {
@@ -282,6 +282,11 @@ namespace HedgeLib.Sets
                     BoxNumY = (uint)System.Math.Ceiling((float)BoxNumY / boxTypeSize);
                     BoxNumZ = (uint)System.Math.Ceiling((float)BoxNumZ / boxTypeSize);
 
+                    if (BoxNumX > 2 && BoxNumY > 2 && BoxNumZ > 2)
+                    {
+                        //todo: handle removing inside boxes
+                    }
+
                     var totalchildren = (BoxNumX * BoxNumY * BoxNumZ * (childnum + 1)) - 1;
 
                     int curr = childnum;
@@ -354,7 +359,7 @@ namespace HedgeLib.Sets
                 objElem.Add(GenerateRotationElement(obj.Transform, obj.ObjectType, RotationOffset));
 
                 // Generate ID Element
-                var objIDAttr = new XElement("SetObjectID", obj.ObjectID + offsetIDs);
+                var objIDAttr = new XElement("SetObjectID", obj.ObjectID + OffsetIDs);
                 objElem.Add(objIDAttr);
 
                 // Generate MultiSet Elements
@@ -660,7 +665,7 @@ namespace HedgeLib.Sets
                 }
                 else if (dataType == typeof(Vector3))
                 {
-                    elem.AddElem((Vector3)param.Data);
+                    elem.AddElem(((Vector3)param.Data) * 0.1f);
                 }
                 else if (dataType == typeof(Vector4) || dataType == typeof(Quaternion))
                 {
@@ -677,12 +682,12 @@ namespace HedgeLib.Sets
                     // Boolean caps
                     elem.Value = param.Data.ToString().ToLowerInvariant();
                 }
-                else if (new string[] { "Target", "ACameraID", "BCameraID", "ALinkObjID", "BLinkObjID" }.Contains(name))
+                else if (new string[] { "Target", "ACameraID", "BCameraID", "ALinkObjID", "BLinkObjID" }.Contains(name) && dataType == typeof(uint))
                 {
                     // Workaround for target obj id parameters
                     // Offset if necessary
                     int temp = (int)(uint)param.Data;
-                    temp += offsetIDs;
+                    temp += OffsetIDs;
 
                     var targetIDAttr = new XElement("SetObjectID", temp.ToString());
                     elem.Add(targetIDAttr);
@@ -847,6 +852,8 @@ namespace HedgeLib.Sets
                 }
                 ParamMods.Add(item.Name.ToString(), parameters);
             }
+
+            OffsetIDs = int.Parse(doc.Root.Element("IDOffset").Attribute("Value").Value);
         }
 
         public static T DeepCopy<T>(T item)
