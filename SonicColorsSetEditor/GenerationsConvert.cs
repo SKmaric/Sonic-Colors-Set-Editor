@@ -552,11 +552,11 @@ namespace HedgeLib.Sets
                         dataType == typeof(int) ||
                         dataType == typeof(uint))
                     {
-                        uint temp = (uint)param.Data;
+                        var temp = param.Data.ToString();
                         object value = temp;
                         foreach (var item in enums)
                         {
-                            if ((uint)item.Value == temp)
+                            if (item.Value.ToString() == temp)
                             {
                                 value = item.Description;
                             }
