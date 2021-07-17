@@ -228,8 +228,7 @@ namespace HedgeLib.Sets
                 var objIDAttr = new XElement("SetObjectID", obj.ObjectID + offsetIDs);
                 objElem.Add(objIDAttr);
 
-                // Generate MultiSet Elements
-                //todo: IronBox and game land box count
+                // Turn BoxNums into multiset objects
                 if (obj.ObjectType == "IronBox")
                 {
                     // Define length of things
@@ -272,6 +271,81 @@ namespace HedgeLib.Sets
                                         child.Rotation = transform.Rotation;
 
                                         child.Position = OffsetPosition(child, new Vector3(x * 20, y * 20, z * 20));
+
+                                        largerChildrenArray[curr] = child;
+                                        curr++;
+                                    }
+                                }
+                            }
+                        }
+                        obj.Children = largerChildrenArray;
+                    }
+                }
+
+                if (obj.ObjectType == "MapPartsBox")
+                {
+                    // Define length of things
+                    var childnum = obj.Children.Length;
+                    uint modelType = (byte)obj.Parameters[2].Data;
+                    uint BoxNumX = (byte)obj.Parameters[3].Data;
+                    uint BoxNumY = (byte)obj.Parameters[4].Data;
+                    uint BoxNumZ = (byte)obj.Parameters[5].Data;
+
+                    // Get size of actual box model
+                    uint boxTypeSize = 1;
+                    if (modelType == 1)
+                        boxTypeSize = 2;
+                    else if (modelType == 2)
+                        boxTypeSize = 4;
+
+                    // Get needed number of boxes
+                    BoxNumX = (uint)System.Math.Ceiling((float)BoxNumX / boxTypeSize);
+                    BoxNumY = (uint)System.Math.Ceiling((float)BoxNumY / boxTypeSize);
+                    BoxNumZ = (uint)System.Math.Ceiling((float)BoxNumZ / boxTypeSize);
+
+                    var totalchildren = (BoxNumX * BoxNumY * BoxNumZ * (childnum + 1)) - 1;
+
+                    int curr = childnum;
+
+                    if (totalchildren > childnum)
+                    {
+                        var largerChildrenArray = new SetObjectTransform[totalchildren];
+                        obj.Children.CopyTo(largerChildrenArray, 0);
+
+                        // Loop through existing children
+                        SetObjectTransform[] workingtransforms = new SetObjectTransform[obj.Children.Length + 1];
+                        workingtransforms[0] = origobj.Transform;
+                        obj.Children.CopyTo(workingtransforms, 1);
+
+                        foreach (SetObjectTransform transform in workingtransforms)
+                        {
+                            float xOffset = (((byte)obj.Parameters[3].Data) / 2) - (boxTypeSize / 2);
+
+                            float zOffset = 0;
+                            if (boxTypeSize > 1)
+                                zOffset = boxTypeSize / 2;
+
+                            transform.Position = OffsetPosition(transform, new Vector3(-xOffset * 10, 0, -zOffset * 10));
+
+                            bool first = true;
+                            for (int x = 0; x < BoxNumX; ++x)
+                            {
+                                for (int y = 0; y < BoxNumY; ++y)
+                                {
+                                    for (int z = 0; z < BoxNumZ; ++z)
+                                    {
+                                        if (first)
+                                        {
+                                            first = false;
+                                            continue;
+                                        }
+                                        SetObjectTransform child = new SetObjectTransform();
+                                        child.Position.X = transform.Position.X;
+                                        child.Position.Y = transform.Position.Y;
+                                        child.Position.Z = transform.Position.Z;
+                                        child.Rotation = transform.Rotation;
+
+                                        child.Position = OffsetPosition(child, new Vector3(x * (boxTypeSize * 10), y * (boxTypeSize * 10), z * (boxTypeSize * -10)));
 
                                         largerChildrenArray[curr] = child;
                                         curr++;
