@@ -207,27 +207,6 @@ namespace HedgeLib.Sets
                     }
                 }
 
-                // Generate Transforms Elements
-                // Apply position to objects that need it
-                Vector3 PositionOffset = new Vector3();
-                if (PositionOffsets.ContainsKey(obj.ObjectType))
-                {
-                    PositionOffset = PositionOffsets[obj.ObjectType];
-                }
-                objElem.Add(GeneratePositionElement(obj.Transform, obj.ObjectType, PositionOffset));
-
-                // Apply rotation to objects that need it
-                Vector3 RotationOffset = new Vector3();
-                if (RotationOffsets.ContainsKey(obj.ObjectType))
-                {
-                    RotationOffset = RotationOffsets[obj.ObjectType];
-                }
-                objElem.Add(GenerateRotationElement(obj.Transform, obj.ObjectType, RotationOffset));
-
-                // Generate ID Element
-                var objIDAttr = new XElement("SetObjectID", obj.ObjectID + offsetIDs);
-                objElem.Add(objIDAttr);
-
                 // Turn BoxNums into multiset objects
                 if (obj.ObjectType == "IronBox")
                 {
@@ -246,8 +225,8 @@ namespace HedgeLib.Sets
                         obj.Children.CopyTo(largerChildrenArray, 0);
 
                         // Loop through existing children
-                        SetObjectTransform[] workingtransforms = new SetObjectTransform[obj.Children.Length+1];
-                        workingtransforms[0] = origobj.Transform;
+                        SetObjectTransform[] workingtransforms = new SetObjectTransform[obj.Children.Length + 1];
+                        workingtransforms[0] = obj.Transform;
                         obj.Children.CopyTo(workingtransforms, 1);
 
                         foreach (SetObjectTransform transform in workingtransforms)
@@ -314,7 +293,7 @@ namespace HedgeLib.Sets
 
                         // Loop through existing children
                         SetObjectTransform[] workingtransforms = new SetObjectTransform[obj.Children.Length + 1];
-                        workingtransforms[0] = origobj.Transform;
+                        workingtransforms[0] = obj.Transform;
                         obj.Children.CopyTo(workingtransforms, 1);
 
                         foreach (SetObjectTransform transform in workingtransforms)
@@ -356,6 +335,27 @@ namespace HedgeLib.Sets
                         obj.Children = largerChildrenArray;
                     }
                 }
+
+                // Generate Transforms Elements
+                // Apply position to objects that need it
+                Vector3 PositionOffset = new Vector3();
+                if (PositionOffsets.ContainsKey(obj.ObjectType))
+                {
+                    PositionOffset = PositionOffsets[obj.ObjectType];
+                }
+                objElem.Add(GeneratePositionElement(obj.Transform, obj.ObjectType, PositionOffset));
+
+                // Apply rotation to objects that need it
+                Vector3 RotationOffset = new Vector3();
+                if (RotationOffsets.ContainsKey(obj.ObjectType))
+                {
+                    RotationOffset = RotationOffsets[obj.ObjectType];
+                }
+                objElem.Add(GenerateRotationElement(obj.Transform, obj.ObjectType, RotationOffset));
+
+                // Generate ID Element
+                var objIDAttr = new XElement("SetObjectID", obj.ObjectID + offsetIDs);
+                objElem.Add(objIDAttr);
 
                 // Generate MultiSet Elements
                 if (obj.Children.Length > 0)
