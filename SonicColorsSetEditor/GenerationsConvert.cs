@@ -69,6 +69,8 @@ namespace HedgeLib.Sets
                 var template = new SetObjectType();
 
                 // Apply modifiers
+                // Backup original object
+                var origobj = DeepCopy(obj);
                 bool ignoreModifiers = false;
                 if (!ignoreModifiers)
                 {
@@ -110,7 +112,6 @@ namespace HedgeLib.Sets
                             obj.Parameters.Add(o);
                         }
                     }
-                    var origobj = DeepCopy(obj);
 
                     // Apply modifiers to parameters
                     for (int i = 0; i < obj.Parameters.Count; ++i)
@@ -226,6 +227,61 @@ namespace HedgeLib.Sets
                 // Generate ID Element
                 var objIDAttr = new XElement("SetObjectID", obj.ObjectID + offsetIDs);
                 objElem.Add(objIDAttr);
+
+                // Generate MultiSet Elements
+                //todo: IronBox and game land box count
+                if (obj.ObjectType == "IronBox")
+                {
+                    // Define length of things
+                    var childnum = obj.Children.Length;
+                    uint BoxNumX = (uint)obj.Parameters[0].Data;
+                    uint BoxNumY = (uint)obj.Parameters[1].Data;
+                    uint BoxNumZ = (uint)obj.Parameters[2].Data;
+                    var totalchildren = (BoxNumX * BoxNumY * BoxNumZ * (childnum + 1)) - 1;
+
+                    int curr = childnum;
+
+                    if (totalchildren > childnum)
+                    {
+                        var largerChildrenArray = new SetObjectTransform[totalchildren];
+                        obj.Children.CopyTo(largerChildrenArray, 0);
+
+                        // Loop through existing children
+                        SetObjectTransform[] workingtransforms = new SetObjectTransform[obj.Children.Length+1];
+                        workingtransforms[0] = origobj.Transform;
+                        obj.Children.CopyTo(workingtransforms, 1);
+
+                        foreach (SetObjectTransform transform in workingtransforms)
+                        {
+                            bool first = true;
+                            for (int x = 0; x < BoxNumX; ++x)
+                            {
+                                for (int y = 0; y < BoxNumY; ++y)
+                                {
+                                    for (int z = 0; z < BoxNumZ; ++z)
+                                    {
+                                        if (first)
+                                        {
+                                            first = false;
+                                            continue;
+                                        }
+                                        SetObjectTransform child = new SetObjectTransform();
+                                        child.Position.X = transform.Position.X;
+                                        child.Position.Y = transform.Position.Y;
+                                        child.Position.Z = transform.Position.Z;
+                                        child.Rotation = transform.Rotation;
+
+                                        child.Position = OffsetPosition(child, new Vector3(x * 20, y * 20, z * 20));
+
+                                        largerChildrenArray[curr] = child;
+                                        curr++;
+                                    }
+                                }
+                            }
+                        }
+                        obj.Children = largerChildrenArray;
+                    }
+                }
 
                 // Generate MultiSet Elements
                 if (obj.Children.Length > 0)
@@ -575,16 +631,10 @@ namespace HedgeLib.Sets
                 transform.Position = transform.Position * 0.1f;
 
                 // Offset
-                var magnitude = new System.Numerics.Vector3(positionOffset.X, positionOffset.Y, positionOffset.Z);
-                var quaternion = new System.Numerics.Quaternion(transform.Rotation.X, transform.Rotation.Y, transform.Rotation.Z, transform.Rotation.W);
-                magnitude = System.Numerics.Vector3.Transform(magnitude, quaternion);
-                positionOffset = new Vector3(magnitude.X, magnitude.Y, magnitude.Z);
-
-                transform.Position += positionOffset;
-
-                posElem.AddElem(transform.Position);
+                transform.Position = OffsetPosition(transform, positionOffset);
 
                 // Add elements to new position element and return it.
+                posElem.AddElem(transform.Position);
                 return new XElement(posElem);
             }
 
@@ -595,18 +645,39 @@ namespace HedgeLib.Sets
                 var rotElem = new XElement("Rotation");
 
                 // Rotate objects that need it
+                transform.Rotation = OffsetRotation(transform.Rotation, rotationOffset);
+
+                // Add elements to new rotation element and return it.
+                rotElem.AddElem(transform.Rotation);
+                return new XElement(rotElem);
+            }
+
+            Vector3 OffsetPosition(SetObjectTransform transform, Vector3 positionOffset)
+            {
+                var magnitude = new System.Numerics.Vector3(positionOffset.X, positionOffset.Y, positionOffset.Z);
+                var quaternion = new System.Numerics.Quaternion(transform.Rotation.X, transform.Rotation.Y, transform.Rotation.Z, transform.Rotation.W);
+                magnitude = System.Numerics.Vector3.Transform(magnitude, quaternion);
+                positionOffset = new Vector3(magnitude.X, magnitude.Y, magnitude.Z);
+
+                transform.Position += positionOffset;
+
+                return transform.Position;
+            }
+
+            Quaternion OffsetRotation(Quaternion rotation, Vector3 rotationOffset)
+            {
                 //todo: implement properly instead of being limited by 90 degrees
                 if (rotationOffset.X != 0 || rotationOffset.Y != 0)
                 {
-                    var temp = transform.Rotation.ToEulerAngles();
+                    var temp = rotation.ToEulerAngles();
                     // X
                     if (rotationOffset.X != 0)
                     {
-                        
+
                         if ((temp.Y == 0) && (temp.Z == 0))
                         {
                             temp.X = temp.X + rotationOffset.X;
-                            transform.Rotation = new Quaternion(temp);
+                            rotation = new Quaternion(temp);
                         }
                         else if ((temp.Y == 0) && (System.Math.Abs(rotationOffset.X) == 90))
                         {
@@ -619,7 +690,7 @@ namespace HedgeLib.Sets
                             float temptemp = Rotation.Y;
                             Rotation.Y = Rotation.W;
                             Rotation.W = temptemp;
-                            transform.Rotation = new Quaternion(Rotation);
+                            rotation = new Quaternion(Rotation);
                         }
                         else Console.WriteLine("Unsupported X rotation modification detected");
 
@@ -647,14 +718,11 @@ namespace HedgeLib.Sets
                         {
                             Console.WriteLine("Y Rotation currently only supports 90, 180 or -90 degrees on Y axis.");
                         }
-                        transform.Rotation = new Quaternion(temp);
+                        rotation = new Quaternion(temp);
                     }
                 }
 
-                rotElem.AddElem(transform.Rotation);
-
-                // Add elements to new rotation element and return it.
-                return new XElement(rotElem);
+                return rotation;
             }
         }
 
