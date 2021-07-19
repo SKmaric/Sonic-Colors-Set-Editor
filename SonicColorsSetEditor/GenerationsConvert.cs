@@ -20,6 +20,7 @@ namespace HedgeLib.Sets
         Dictionary<string, Vector3> RotationOffsets = null;
         Dictionary<string, List<ParamMods>> ParamMods = null;
         private int OffsetIDs = 0;
+        private Vector3 GlobalPositionOffset = new Vector3(0,0,0);
 
         public void GensExportXML(string filePath, List<SetObject> sourceObjects, XDocument doc)
         {
@@ -665,7 +666,11 @@ namespace HedgeLib.Sets
                 }
                 else if (dataType == typeof(Vector3))
                 {
-                    elem.AddElem(((Vector3)param.Data) * 0.1f);
+                    var vector = (Vector3)param.Data * 0.1f;
+                    // Apply global offset - Don't apply offset if vector3 is 0
+                    if (!vector.Equals(new Vector3(0,0,0)))
+                        vector += GlobalPositionOffset;
+                    elem.AddElem(vector);
                 }
                 else if (dataType == typeof(Vector4) || dataType == typeof(Quaternion))
                 {
@@ -711,6 +716,9 @@ namespace HedgeLib.Sets
 
                 // Offset
                 transform.Position = OffsetPosition(transform, positionOffset);
+
+                // Global Offset
+                transform.Position += GlobalPositionOffset;
 
                 // Add elements to new position element and return it.
                 posElem.AddElem(transform.Position);
@@ -854,6 +862,12 @@ namespace HedgeLib.Sets
             }
 
             OffsetIDs = int.Parse(doc.Root.Element("IDOffset").Attribute("Value").Value);
+
+            GlobalPositionOffset = new Vector3(
+                float.Parse(doc.Root.Element("GlobalPositionOffset").Attribute("X").Value),
+                float.Parse(doc.Root.Element("GlobalPositionOffset").Attribute("Y").Value),
+                float.Parse(doc.Root.Element("GlobalPositionOffset").Attribute("Z").Value)
+                );
         }
 
         public static T DeepCopy<T>(T item)
