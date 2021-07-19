@@ -13,7 +13,7 @@ namespace HedgeLib.Sets
     {
         public Dictionary<string, SetObjectType> ObjectTemplates = null;
         public Dictionary<string, SetObjectType> TargetTemplates = null;
-        Dictionary<string, string[]> RenameDict = null;
+        Dictionary<string, List<string[]>> RenameDict = null;
         Dictionary<string, string> ObjPhysDict = null;
         Dictionary<string, string> RemovalDict = null;
         Dictionary<string, Vector3> PositionOffsets = null;
@@ -57,8 +57,11 @@ namespace HedgeLib.Sets
                 // Rename if applicable
                 if (RenameDict.ContainsKey(obj.ObjectType))
                 {
-                    if (HandleParamModCond(RenameDict[obj.ObjectType][1], obj, sourcetemplate))
-                        GensObjName = RenameDict[obj.ObjectType][0];
+                    foreach (var renamer in RenameDict[obj.ObjectType])
+                    {
+                        if (HandleParamModCond(renamer[1], obj, sourcetemplate))
+                            GensObjName = renamer[0];
+                    }
                 }
 
                 // Change to ObjectPhysics if necessary
@@ -458,12 +461,12 @@ namespace HedgeLib.Sets
                         {
                             if (separatorType == ':')
                             {
-                                if (value == obj.Parameters[i].Data.ToString())
+                                if (value.ToUpperInvariant() == obj.Parameters[i].Data.ToString().ToUpperInvariant())
                                     result = true;
                             }
                             else if (separatorType == '!')
                             {
-                                if (value != obj.Parameters[i].Data.ToString())
+                                if (value.ToUpperInvariant() != obj.Parameters[i].Data.ToString().ToUpperInvariant())
                                     result = true;
                             }
                             else
@@ -822,13 +825,25 @@ namespace HedgeLib.Sets
             var rotationNodes = doc.Root.Element("RotationOffset").Nodes().OfType<XElement>();
             var paramNodes = doc.Root.Element("ParamModify").Nodes().OfType<XElement>();
 
-            RenameDict = renameNodes.ToDictionary(n => n.Attribute("Value").Value, n => new string[]{
-                n.Name.ToString(),
-                n.Attribute("Condition") == null ? null : n.Attribute("Condition").Value
-            }); // Invert to get around xml limitations
+            RenameDict = new Dictionary<string, List<string[]>>();
+            foreach (var item in renameNodes)
+            {
+                var renamer = new string[]{
+                    item.Name.ToString(),
+                    item.Attribute("Condition") == null ? null : item.Attribute("Condition").Value
+                };
+
+                if (!RenameDict.ContainsKey(item.Attribute("Value").Value))
+                {
+                    RenameDict.Add(item.Attribute("Value").Value, new List<string[]>());
+                }
+                RenameDict[item.Attribute("Value").Value].Add(renamer);
+            }
 
             ObjPhysDict = objPhysNodes.ToDictionary(n => n.Name.ToString(), n => n.Value);
+
             RemovalDict = removalNodes.ToDictionary(n => n.Name.ToString(), n => n.Value);
+
             PositionOffsets = positionNodes.ToDictionary(n => n.Name.ToString(), n => new Vector3(
                 float.Parse(n.Attribute("X").Value),
                 float.Parse(n.Attribute("Y").Value),
@@ -840,7 +855,6 @@ namespace HedgeLib.Sets
                 float.Parse(n.Attribute("Y").Value),
                 float.Parse(n.Attribute("Z").Value)
                 ));
-            //ParamMods = paramNodes.ToDictionary(n => n.Name.ToString(), n => n.Attribute("Value").Value);
 
             ParamMods = new Dictionary<string, List<ParamMods>>();
             foreach (var item in paramNodes)
