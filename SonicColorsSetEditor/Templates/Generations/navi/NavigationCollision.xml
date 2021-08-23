@@ -1,0 +1,26 @@
+<?xml version="1.0" ?>
+<Template>
+  <CancelAngle type="float" default="90" description="" />
+  <CollisionType type="float" default="1" description="" />
+  <Collision_Height type="float" default="11" description="" />
+  <Collision_Length type="float" default="48" description="" />
+  <Collision_Width type="float" default="15" description="" />
+  <DefaultStatus type="float" default="0" description="" />
+  <DelayTime type="float" default="7" description="" />
+  <DelayType type="float" default="0" description="" />
+  <DirectionType type="float" default="2" description="0 = Right, 1 = Left, 2 = Both. Applies to NavigationType 5 and 8" />
+  <GroundOffset type="float" default="0" description="" />
+  <InputAngle type="float" default="70" description="" />
+  <IsCastShadow type="bool" default="true" description="" />
+  <NavigationType type="float" default="2" description="0 = Quick Step, 1 = Grind Step, 2 = Slide, 3 = Boost, 4 = ?, 5 = Arrow (hides when not moving), 6 = Jump + Homing Attack, 7 = Spindash, 8 = Drift, 9 = Arrow, 10 = Jump + Stomp" />
+  <OffSpeed type="float" default="5" description="" />
+  <OnSpeed type="float" default="5" description="" />
+  <OutputTime type="float" default="3" description="" />
+  <QSType type="float" default="2" description="0 = Right, 1 = Left, 2 = Both. Applies to NavigationType 0 and 1" />
+  <Range type="float" default="1000" description="" />
+  <SlidingPosition type="vector" description="" />
+  <TargetObject_RelationSetObject type="id" description="" />
+  <Extra type="preview_box_x" name="Collision_Width" />
+  <Extra type="preview_box_y" name="Collision_Height" />
+  <Extra type="preview_box_z" name="Collision_Length" />
+</Template>
