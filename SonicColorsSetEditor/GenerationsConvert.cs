@@ -16,8 +16,8 @@ namespace HedgeLib.Sets
         Dictionary<string, List<string[]>> RenameDict = null;
         Dictionary<string, string> ObjPhysDict = null;
         Dictionary<string, string> RemovalDict = null;
-        Dictionary<string, Vector3> PositionOffsets = null;
-        Dictionary<string, Vector3> RotationOffsets = null;
+        Dictionary<string, List<Vector3Cond>> PositionOffsets = null;
+        Dictionary<string, List<Vector3Cond>> RotationOffsets = null;
         Dictionary<string, List<ParamMods>> ParamMods = null;
         private int OffsetIDs = 0;
         private Vector3 GlobalPositionOffset = new Vector3(0,0,0);
@@ -348,17 +348,25 @@ namespace HedgeLib.Sets
                 // Generate Transforms Elements
                 // Apply position to objects that need it
                 Vector3 PositionOffset = new Vector3();
-                if (PositionOffsets.ContainsKey(obj.ObjectType))
+                if (PositionOffsets.ContainsKey(GensObjName))
                 {
-                    PositionOffset = PositionOffsets[obj.ObjectType];
+                    foreach (var modifier in PositionOffsets[GensObjName])
+                    {
+                        if (HandleParamModCond(modifier.Condition, obj, sourcetemplate))
+                            PositionOffset = modifier.Value;
+                    }
                 }
                 objElem.Add(GeneratePositionElement(obj.Transform, obj.ObjectType, PositionOffset));
 
                 // Apply rotation to objects that need it
                 Vector3 RotationOffset = new Vector3();
-                if (RotationOffsets.ContainsKey(obj.ObjectType))
+                if (RotationOffsets.ContainsKey(GensObjName))
                 {
-                    RotationOffset = RotationOffsets[obj.ObjectType];
+                    foreach (var modifier in RotationOffsets[GensObjName])
+                    {
+                        if (HandleParamModCond(modifier.Condition, obj, sourcetemplate))
+                            RotationOffset = modifier.Value;
+                    }
                 }
                 objElem.Add(GenerateRotationElement(obj.Transform, obj.ObjectType, RotationOffset));
 
@@ -844,17 +852,37 @@ namespace HedgeLib.Sets
 
             RemovalDict = removalNodes.ToDictionary(n => n.Name.ToString(), n => n.Value);
 
-            PositionOffsets = positionNodes.ToDictionary(n => n.Name.ToString(), n => new Vector3(
-                float.Parse(n.Attribute("X").Value),
-                float.Parse(n.Attribute("Y").Value),
-                float.Parse(n.Attribute("Z").Value)
-                ));
+            PositionOffsets = new Dictionary<string, List<Vector3Cond>>();
+            foreach (var item in positionNodes)
+            {
+                var modifier = new Vector3Cond(new Vector3(
+                float.Parse(item.Attribute("X").Value),
+                float.Parse(item.Attribute("Y").Value),
+                float.Parse(item.Attribute("Z").Value)
+                ), item.Attribute("Condition") == null ? null : item.Attribute("Condition").Value);
 
-            RotationOffsets = rotationNodes.ToDictionary(n => n.Name.ToString(), n => new Vector3(
-                float.Parse(n.Attribute("X").Value),
-                float.Parse(n.Attribute("Y").Value),
-                float.Parse(n.Attribute("Z").Value)
-                ));
+                if (!PositionOffsets.ContainsKey(item.Name.ToString()))
+                {
+                    PositionOffsets.Add(item.Name.ToString(), new List<Vector3Cond>());
+                }
+                PositionOffsets[item.Name.ToString()].Add(modifier);
+            }
+
+            RotationOffsets = new Dictionary<string, List<Vector3Cond>>();
+            foreach (var item in rotationNodes)
+            {
+                var modifier = new Vector3Cond(new Vector3(
+                float.Parse(item.Attribute("X").Value),
+                float.Parse(item.Attribute("Y").Value),
+                float.Parse(item.Attribute("Z").Value)
+                ), item.Attribute("Condition") == null ? null : item.Attribute("Condition").Value);
+
+                if (!RotationOffsets.ContainsKey(item.Name.ToString()))
+                {
+                    RotationOffsets.Add(item.Name.ToString(), new List<Vector3Cond>());
+                }
+                RotationOffsets[item.Name.ToString()].Add(modifier);
+            }
 
             ParamMods = new Dictionary<string, List<ParamMods>>();
             foreach (var item in paramNodes)
@@ -918,6 +946,19 @@ namespace HedgeLib.Sets
             Offset = offset;
             BoolFlip = boolflip;
             EnumString = enumstring;
+            Condition = condition;
+        }
+    }
+
+    public class Vector3Cond
+    {
+        // Variables/Constants
+        public Vector3 Value;
+        public string Condition;
+
+        public Vector3Cond(Vector3 value, string condition)
+        {
+            Value = value;
             Condition = condition;
         }
     }
