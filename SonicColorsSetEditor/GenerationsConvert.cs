@@ -157,7 +157,7 @@ namespace HedgeLib.Sets
                             // todo: more mods
                             foreach (var mods in generalmodifiers)
                             {
-                                if (name.Contains(mods.Name))
+                                if (name == mods.Name)
                                 {
                                     if (HandleParamModCond(mods.Condition, origobj, template))
                                     {
@@ -167,6 +167,21 @@ namespace HedgeLib.Sets
 
                                         param = ApplyParamMods(param, mods, template.Parameters[i].Enums);
                                         break;
+                                    }
+                                }
+                                if (mods.Name.EndsWith("."))
+                                {
+                                    if (name.Contains(mods.Name.Substring(0,mods.Name.Length - 1)))
+                                    {
+                                        if (HandleParamModCond(mods.Condition, origobj, template))
+                                        {
+                                            // Rename
+                                            if (mods.Rename != null)
+                                                template.Parameters[i].Name = mods.Rename;
+
+                                            param = ApplyParamMods(param, mods, template.Parameters[i].Enums);
+                                            break;
+                                        }
                                     }
                                 }
                             }
