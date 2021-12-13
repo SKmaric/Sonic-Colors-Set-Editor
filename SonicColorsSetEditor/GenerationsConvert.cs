@@ -723,6 +723,16 @@ namespace HedgeLib.Sets
                     var targetIDAttr = new XElement("SetObjectID", temp.ToString());
                     elem.Add(targetIDAttr);
                 }
+                else if (param.DataType == typeof(uint[]))
+                {
+                    foreach (uint item in (uint[])param.Data)
+                    {
+                        int temp = (int)(uint)item;
+                        temp += OffsetIDs;
+                        var targetIDAttr = new XElement("SetObjectID", temp.ToString());
+                        elem.Add(targetIDAttr);
+                    }
+                }
                 else if (param.Data != null)
                 {
                     elem.Value = param.Data.ToString();
