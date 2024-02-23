@@ -18,16 +18,22 @@ namespace HedgeLib.Sets
         Dictionary<string, string> RemovalDict = null;
         Dictionary<string, List<Vector3Cond>> PositionOffsets = null;
         Dictionary<string, List<Vector3Cond>> RotationOffsets = null;
+        Dictionary<string, List<PathSnapParam>> PathSnaps = null;
+        Dictionary<uint, Vector3[]> PathRootNodes = null;
+        //XDocument Paths = null;
         Dictionary<string, List<ParamMods>> ParamMods = null;
         private int OffsetIDs = 0;
         private Vector3 GlobalPositionOffset = new Vector3(0,0,0);
 
-        public void GensExportXML(string filePath, List<SetObject> sourceObjects, XDocument doc)
+        public void GensExportXML(string filePath, List<SetObject> sourceObjects, XDocument doc, XDocument pathDoc = null)
         {
             Objects = new List<SetObject>();
             Objects = DeepCopy(sourceObjects);
 
             LoadExportConfig(doc);
+
+            if (pathDoc != null)
+                LoadPathRootNodes(pathDoc);
 
             using (var fileStream = File.OpenWrite(filePath))
             {
@@ -361,6 +367,35 @@ namespace HedgeLib.Sets
                 }
 
                 // Generate Transforms Elements
+                // Snap to path
+                Vector3 PositionSnap = new Vector3();
+                bool[] PosSnapEnable = new bool[3];
+
+                if (PathRootNodes != null)
+                {
+                    if (PathSnaps.ContainsKey(GensObjName))
+                    {
+                        foreach (var modifier in PathSnaps[GensObjName])
+                        {
+                            if (HandleParamModCond(modifier.Condition, obj, sourcetemplate))
+                            {
+                                for (int i = 0; i < sourcetemplate.Parameters.Count; ++i)
+                                {
+                                    if (modifier.ParameterName == sourcetemplate.Parameters[i].Name)
+                                    {
+                                        uint PathID = (uint)obj.Parameters[i].Data;
+                                        if (PathRootNodes.ContainsKey(PathID))
+                                        {
+                                            PositionSnap = PathRootNodes[PathID][0];
+                                            PosSnapEnable = new bool[] { modifier.PosX, modifier.PosY, modifier.PosZ };
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // Apply position to objects that need it
                 Vector3 PositionOffset = new Vector3();
                 if (PositionOffsets.ContainsKey(GensObjName))
@@ -371,7 +406,7 @@ namespace HedgeLib.Sets
                             PositionOffset = modifier.Value;
                     }
                 }
-                objElem.Add(GeneratePositionElement(obj.Transform, obj.ObjectType, PositionOffset));
+                objElem.Add(GeneratePositionElement(obj.Transform, obj.ObjectType, PositionOffset, PositionSnap, PosSnapEnable));
 
                 // Apply rotation to objects that need it
                 Vector3 RotationOffset = new Vector3();
@@ -742,19 +777,27 @@ namespace HedgeLib.Sets
             }
 
             XElement GeneratePositionElement(
-                SetObjectTransform transform, string name = "Transform", Vector3 positionOffset = new Vector3())
+                SetObjectTransform transform, string name = "Transform", Vector3 positionOffset = new Vector3(),
+                Vector3 positionOverride = new Vector3(), bool[] overrideEnable = null)
             {
+                overrideEnable = overrideEnable ?? new bool[3];
+
                 // Convert Position into elements.
                 var posElem = new XElement("Position");
 
                 // Scaling
                 transform.Position = transform.Position * 0.1f;
 
-                // Offset
-                transform.Position = OffsetPosition(transform, positionOffset);
-
                 // Global Offset
                 transform.Position += GlobalPositionOffset;
+
+                // Override
+                transform.Position.X = overrideEnable[0] ? positionOverride.X : transform.Position.X;
+                transform.Position.Y = overrideEnable[1] ? positionOverride.Y : transform.Position.Y;
+                transform.Position.Z = overrideEnable[2] ? positionOverride.Z : transform.Position.Z;
+
+                // Offset
+                transform.Position = OffsetPosition(transform, positionOffset);
 
                 // Add elements to new position element and return it.
                 posElem.AddElem(transform.Position);
@@ -856,6 +899,7 @@ namespace HedgeLib.Sets
             var removalNodes = doc.Root.Element("RemoveObject").Nodes().OfType<XElement>();
             var positionNodes = doc.Root.Element("PositionOffset").Nodes().OfType<XElement>();
             var rotationNodes = doc.Root.Element("RotationOffset").Nodes().OfType<XElement>();
+            var pathSnapNodes = doc.Root.Element("PathSnap").Nodes().OfType<XElement>();
             var paramNodes = doc.Root.Element("ParamModify").Nodes().OfType<XElement>();
 
             RenameDict = new Dictionary<string, List<string[]>>();
@@ -909,6 +953,27 @@ namespace HedgeLib.Sets
                 RotationOffsets[item.Name.ToString()].Add(modifier);
             }
 
+            PathSnaps = new Dictionary<string, List<PathSnapParam>> ();
+            foreach (var item in pathSnapNodes)
+            {
+                var modifier = new PathSnapParam(
+                    item.Attribute("Parameter").Value,
+                    item.Attribute("PosType").Value.ToUpper().Contains("X"),
+                    item.Attribute("PosType").Value.ToUpper().Contains("Y"),
+                    item.Attribute("PosType").Value.ToUpper().Contains("Z"),
+                    item.Attribute("RotType").Value.ToUpper().Contains("X"),
+                    item.Attribute("RotType").Value.ToUpper().Contains("Y"),
+                    item.Attribute("RotType").Value.ToUpper().Contains("Z"),
+                    item.Attribute("Condition") == null ? null : item.Attribute("Condition").Value
+                );
+
+                if (!PathSnaps.ContainsKey(item.Name.ToString()))
+                {
+                    PathSnaps.Add(item.Name.ToString(), new List<PathSnapParam>());
+                }
+                PathSnaps[item.Name.ToString()].Add(modifier);
+            }
+
             ParamMods = new Dictionary<string, List<ParamMods>>();
             foreach (var item in paramNodes)
             {
@@ -935,6 +1000,60 @@ namespace HedgeLib.Sets
                 float.Parse(doc.Root.Element("GlobalPositionOffset").Attribute("Y").Value),
                 float.Parse(doc.Root.Element("GlobalPositionOffset").Attribute("Z").Value)
                 );
+        }
+
+        private void LoadPathRootNodes(XDocument pathDoc)
+        {
+            // Make sure it's actually a path file
+            if (pathDoc.Root.Name != "SonicPath")
+                return;
+
+            PathRootNodes = new Dictionary<uint, Vector3[]>();
+
+            var geometryNodes = pathDoc.Root.Element("library").Nodes().OfType<XElement>();
+
+            foreach (var item in geometryNodes)
+            {
+                string nodeName = item.Attribute("name").Value;
+                if (nodeName.Contains("objpath"))
+                {
+                    int position = nodeName.IndexOf("__");
+
+                    if (uint.TryParse(nodeName.Substring(position + 2, 3), out uint PathID))
+                    {
+                        // Load values from path XML
+                        var knotElem = item.Element("spline").Element("spline3d").Element("knot");
+                        string[] posNode = knotElem.Element("point").Value.Split(' ');
+                        string[] rotDirNode = knotElem.Element("outvec").Value.Split(' ');
+
+                        // Parse Vector3
+                        Vector3 pos = new Vector3();
+                        pos.X = float.Parse(posNode[0]);
+                        pos.Y = float.Parse(posNode[1]);
+                        pos.Z = float.Parse(posNode[2]);
+
+                        Vector3 rotDir = new Vector3();
+                        rotDir.X = float.Parse(rotDirNode[0]);
+                        rotDir.Y = float.Parse(rotDirNode[1]);
+                        rotDir.Z = float.Parse(rotDirNode[2]);
+
+                        var vectorArray = new Vector3[2];
+                        vectorArray[0] = pos;
+                        vectorArray[1] = rotDir;
+
+                        // Parse rotation from Vector3
+
+                        PathRootNodes.Add(PathID, vectorArray);
+
+                        //RenameDict.Add(item.Attribute("Value").Value, new List<string[]>());
+                        //RenameDict[item.Attribute("Value").Value].Add(renamer);
+                    }
+                    else
+                    {
+                        Console.WriteLine("String could not be parsed.");
+                    }
+                }
+            }
         }
 
         public static T DeepCopy<T>(T item)
@@ -984,6 +1103,32 @@ namespace HedgeLib.Sets
         public Vector3Cond(Vector3 value, string condition)
         {
             Value = value;
+            Condition = condition;
+        }
+    }
+
+    public class PathSnapParam
+    {
+        // Variables/Constants
+        public string ParameterName;
+        public bool PosX;
+        public bool PosY;
+        public bool PosZ;
+        public bool RotX;
+        public bool RotY;
+        public bool RotZ;
+        public string Condition;
+
+        public PathSnapParam(string parametername, bool posx, bool posy, bool posz, 
+            bool rotx, bool roty, bool rotz, string condition)
+        {
+            ParameterName = parametername;
+            PosX = posx;
+            PosY = posy;
+            PosZ = posz;
+            RotX = rotx;
+            RotY = roty;
+            RotZ = rotz;
             Condition = condition;
         }
     }

@@ -363,12 +363,22 @@ namespace SonicColorsSetEditor
                         var doc = XDocument.Load("Templates/Colors/Modifiers-ColorsToGenerations.xml");
                         var TemplatesGenerations = SetObjectType.LoadObjectTemplates(TemplatesPath, "Generations");
 
+                        // Load path file
+                        XDocument pathDoc = null;
+                        var ofd = new OpenFileDialog()
+                        {
+                            Title = "Load Path file",
+                            Filter = $"Sonic Generations Path Data|*.path.xml"
+                        };
+                        if (ofd.ShowDialog() == DialogResult.OK)
+                            pathDoc = XDocument.Load(ofd.FileName);
+
                         ColorstoGensSetData = new ColorstoGensSetData();
                         ColorstoGensSetData.Name = SetData.Name;
                         ColorstoGensSetData.ObjectTemplates = TemplatesColors;
                         ColorstoGensSetData.TargetTemplates = TemplatesGenerations;
 
-                        ColorstoGensSetData.GensExportXML(LoadedFilePath, SetData.Objects, doc);
+                        ColorstoGensSetData.GensExportXML(LoadedFilePath, SetData.Objects, doc, pathDoc);
 
                         MessageBox.Show("Complete");
                     }
