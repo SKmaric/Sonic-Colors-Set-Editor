@@ -59,6 +59,7 @@ namespace SonicColorsSetEditor
             this.New_SOBJ_ToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.Delete_SOBJ_ToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.Duplicate_SOBJ_ToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.rawParameterDataToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.label6 = new System.Windows.Forms.Label();
             this.NumericUpDown_ObjectID = new System.Windows.Forms.NumericUpDown();
@@ -98,7 +99,8 @@ namespace SonicColorsSetEditor
             this.Button_RemoveObject = new System.Windows.Forms.Button();
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.ToolStrip_Label = new System.Windows.Forms.ToolStripStatusLabel();
-            this.rawParameterDataToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.chkbox_IsUltimate = new System.Windows.Forms.CheckBox();
+            this.batchConvertToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.menuStrip1.SuspendLayout();
             this.SOBJ_ContextMenuStrip.SuspendLayout();
             this.groupBox1.SuspendLayout();
@@ -147,6 +149,7 @@ namespace SonicColorsSetEditor
             this.newToolStripMenuItem,
             this.ToolStripMenuItem_OpenFile,
             this.ToolStripMenuItem_OpenExtractedCPK,
+            this.batchConvertToolStripMenuItem,
             this.saveToolStripMenuItem,
             this.saveAsToolStripMenuItem,
             this.exitToolStripMenuItem});
@@ -217,7 +220,7 @@ namespace SonicColorsSetEditor
             this.ReloadSetData_ToolStripMenuItem,
             this.ReassignAllObjects_ToolStripMenuItem});
             this.toolsToolStripMenuItem.Name = "toolsToolStripMenuItem";
-            this.toolsToolStripMenuItem.Size = new System.Drawing.Size(47, 20);
+            this.toolsToolStripMenuItem.Size = new System.Drawing.Size(46, 20);
             this.toolsToolStripMenuItem.Text = "Tools";
             // 
             // ToolStripMenuItem_BuildCPK
@@ -307,14 +310,14 @@ namespace SonicColorsSetEditor
             // StageNamesEditor_ToolStripMenuItem
             // 
             this.StageNamesEditor_ToolStripMenuItem.Name = "StageNamesEditor_ToolStripMenuItem";
-            this.StageNamesEditor_ToolStripMenuItem.Size = new System.Drawing.Size(176, 22);
+            this.StageNamesEditor_ToolStripMenuItem.Size = new System.Drawing.Size(175, 22);
             this.StageNamesEditor_ToolStripMenuItem.Text = "StageNames Editor";
             this.StageNamesEditor_ToolStripMenuItem.Click += new System.EventHandler(this.StageNamesEditor_ToolStripMenuItem_Click);
             // 
             // EnableDarkTheme_ToolStripMenuItem
             // 
             this.EnableDarkTheme_ToolStripMenuItem.Name = "EnableDarkTheme_ToolStripMenuItem";
-            this.EnableDarkTheme_ToolStripMenuItem.Size = new System.Drawing.Size(176, 22);
+            this.EnableDarkTheme_ToolStripMenuItem.Size = new System.Drawing.Size(175, 22);
             this.EnableDarkTheme_ToolStripMenuItem.Text = "Enable Dark Theme";
             this.EnableDarkTheme_ToolStripMenuItem.Click += new System.EventHandler(this.EnableDarkTheme_ToolStripMenuItem_Click);
             // 
@@ -327,6 +330,7 @@ namespace SonicColorsSetEditor
             this.columnHeader1});
             this.ListView_Objects.ContextMenuStrip = this.SOBJ_ContextMenuStrip;
             this.ListView_Objects.FullRowSelect = true;
+            this.ListView_Objects.HideSelection = false;
             this.ListView_Objects.Location = new System.Drawing.Point(13, 55);
             this.ListView_Objects.MultiSelect = false;
             this.ListView_Objects.Name = "ListView_Objects";
@@ -355,7 +359,7 @@ namespace SonicColorsSetEditor
             this.Duplicate_SOBJ_ToolStripMenuItem,
             this.rawParameterDataToolStripMenuItem});
             this.SOBJ_ContextMenuStrip.Name = "SOBJ_ContextMenuStrip";
-            this.SOBJ_ContextMenuStrip.Size = new System.Drawing.Size(199, 114);
+            this.SOBJ_ContextMenuStrip.Size = new System.Drawing.Size(199, 92);
             // 
             // New_SOBJ_ToolStripMenuItem
             // 
@@ -382,6 +386,13 @@ namespace SonicColorsSetEditor
             this.Duplicate_SOBJ_ToolStripMenuItem.Size = new System.Drawing.Size(198, 22);
             this.Duplicate_SOBJ_ToolStripMenuItem.Text = "Duplicate";
             this.Duplicate_SOBJ_ToolStripMenuItem.Click += new System.EventHandler(this.Duplicate_SOBJ_ToolStripMenuItem_Click);
+            // 
+            // rawParameterDataToolStripMenuItem
+            // 
+            this.rawParameterDataToolStripMenuItem.Name = "rawParameterDataToolStripMenuItem";
+            this.rawParameterDataToolStripMenuItem.Size = new System.Drawing.Size(198, 22);
+            this.rawParameterDataToolStripMenuItem.Text = "Raw Parameter Data";
+            this.rawParameterDataToolStripMenuItem.Click += new System.EventHandler(this.RawParameterDataToolStripMenuItem_Click);
             // 
             // groupBox1
             // 
@@ -453,6 +464,7 @@ namespace SonicColorsSetEditor
             this.columnHeader5,
             this.columnHeader6});
             this.ListView_CustomData.FullRowSelect = true;
+            this.ListView_CustomData.HideSelection = false;
             this.ListView_CustomData.Location = new System.Drawing.Point(6, 21);
             this.ListView_CustomData.MultiSelect = false;
             this.ListView_CustomData.Name = "ListView_CustomData";
@@ -541,6 +553,7 @@ namespace SonicColorsSetEditor
             this.columnHeader3,
             this.columnHeader4});
             this.ListView_Param.FullRowSelect = true;
+            this.ListView_Param.HideSelection = false;
             this.ListView_Param.Location = new System.Drawing.Point(5, 13);
             this.ListView_Param.MultiSelect = false;
             this.ListView_Param.Name = "ListView_Param";
@@ -872,12 +885,22 @@ namespace SonicColorsSetEditor
             this.ToolStrip_Label.Name = "ToolStrip_Label";
             this.ToolStrip_Label.Size = new System.Drawing.Size(0, 17);
             // 
-            // rawParameterDataToolStripMenuItem
+            // chkbox_IsUltimate
             // 
-            this.rawParameterDataToolStripMenuItem.Name = "rawParameterDataToolStripMenuItem";
-            this.rawParameterDataToolStripMenuItem.Size = new System.Drawing.Size(198, 22);
-            this.rawParameterDataToolStripMenuItem.Text = "Raw Parameter Data";
-            this.rawParameterDataToolStripMenuItem.Click += new System.EventHandler(this.RawParameterDataToolStripMenuItem_Click);
+            this.chkbox_IsUltimate.AutoSize = true;
+            this.chkbox_IsUltimate.Location = new System.Drawing.Point(119, 32);
+            this.chkbox_IsUltimate.Name = "chkbox_IsUltimate";
+            this.chkbox_IsUltimate.Size = new System.Drawing.Size(64, 17);
+            this.chkbox_IsUltimate.TabIndex = 11;
+            this.chkbox_IsUltimate.Text = "Ultimate";
+            this.chkbox_IsUltimate.UseVisualStyleBackColor = true;
+            // 
+            // batchConvertToolStripMenuItem
+            // 
+            this.batchConvertToolStripMenuItem.Name = "batchConvertToolStripMenuItem";
+            this.batchConvertToolStripMenuItem.Size = new System.Drawing.Size(254, 22);
+            this.batchConvertToolStripMenuItem.Text = "Batch Convert";
+            this.batchConvertToolStripMenuItem.Click += new System.EventHandler(this.batchConvertToolStripMenuItem_Click);
             // 
             // MainForm
             // 
@@ -886,6 +909,7 @@ namespace SonicColorsSetEditor
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.White;
             this.ClientSize = new System.Drawing.Size(802, 455);
+            this.Controls.Add(this.chkbox_IsUltimate);
             this.Controls.Add(this.statusStrip1);
             this.Controls.Add(this.Button_RemoveObject);
             this.Controls.Add(this.Button_AddObject);
@@ -1000,6 +1024,8 @@ namespace SonicColorsSetEditor
         private System.Windows.Forms.ToolStripMenuItem StageNamesEditor_ToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem EnableDarkTheme_ToolStripMenuItem;
         public System.Windows.Forms.ToolStripMenuItem debugToolStripMenuItem;
+        private System.Windows.Forms.CheckBox chkbox_IsUltimate;
+        private System.Windows.Forms.ToolStripMenuItem batchConvertToolStripMenuItem;
     }
 }
 

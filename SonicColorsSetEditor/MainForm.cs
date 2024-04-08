@@ -34,7 +34,7 @@ namespace SonicColorsSetEditor
         public static bool HasBeenInit = false;
 
         public Dictionary<string, SetObjectType> TemplatesColors = null;
-        public SetData SetData = null;
+        public ColorsSetData SetData = null;
         public SetObject SelectedSetObject = null;
 
         public string CPKDirectory = "";
@@ -308,6 +308,21 @@ namespace SonicColorsSetEditor
                     CPKDirectory = Directory.GetParent(Path.GetDirectoryName(filePath))
                         .FullName;
                 SetData.Load(filePath, TemplatesColors);
+
+                //Hacky solution for JumpBoard
+                if (SetData.Header.IsBigEndian)
+                {
+                    foreach (var Obj in SetData.Objects) if (Obj.ObjectType == "JumpBoard")
+                        {
+                            if (Obj.Parameters[3].DataType == typeof(float))
+                            {
+                                byte value = BitConverter.GetBytes((float)Obj.Parameters[3].Data)[3];
+                                Obj.Parameters[3].Data = 0f;
+                                Obj.Parameters[4].Data = value;
+                            }
+                        }
+                }
+
             }
             else if (filePath.ToLower().EndsWith(".xml"))
             {
@@ -329,6 +344,7 @@ namespace SonicColorsSetEditor
             // Remove SetObjects that have no templates
             SetData.Objects.RemoveAll(t => string.IsNullOrEmpty(t.ObjectType));
             Message($"Loaded {SetData.Objects.Count} Objects.");
+            chkbox_IsUltimate.Checked = !SetData.Header.IsBigEndian;
             UpdateObjects();
         }
 
@@ -353,6 +369,26 @@ namespace SonicColorsSetEditor
                 Console.WriteLine("Saving SetData File: {0}", LoadedFilePath);
                 if (LoadedFilePath.ToLower().EndsWith(".orc"))
                 {
+                    SetData.Header.IsBigEndian = !chkbox_IsUltimate.Checked;
+
+                    //Hacky solution for JumpBoard
+                    if(!chkbox_IsUltimate.Checked)
+                    {
+                        foreach (var Obj in SetData.Objects) if (Obj.ObjectType == "JumpBoard")
+                        {
+                            if (Obj.Parameters[3].DataType == typeof(float))
+                                    Obj.Parameters.RemoveAt(3);
+                        }
+                    }
+                    else
+                    {
+                        foreach (var Obj in SetData.Objects) if (Obj.ObjectType == "JumpBoard")
+                        {
+                            if (Obj.Parameters[3].DataType != typeof(float))
+                                Obj.Parameters.Insert(3, new SetObjectParam(typeof(float), 0f));
+                        }
+                    }
+
                     SetData.Save(LoadedFilePath, true);
                 }
                 else if (LoadedFilePath.ToLower().EndsWith(".set.xml"))
@@ -367,7 +403,7 @@ namespace SonicColorsSetEditor
                         XDocument pathDoc = null;
                         var ofd = new OpenFileDialog()
                         {
-                            Title = "Load Path file",
+                            Title = "Load Path file for " + Path.GetFileNameWithoutExtension(LoadedFilePath),
                             Filter = $"Sonic Generations Path Data|*.path.xml"
                         };
                         if (ofd.ShowDialog() == DialogResult.OK)
@@ -631,6 +667,7 @@ namespace SonicColorsSetEditor
                 sobj.Transform = new SetObjectTransform();
                 sobj.Transform.Position = SelectedSetObject.Transform.Position;
                 sobj.Transform.Rotation = SelectedSetObject.Transform.Rotation;
+                sobj.Transform.RotationV3 = SelectedSetObject.Transform.RotationV3;
                 sobj.Transform.Scale = SelectedSetObject.Transform.Scale;
                 
                 // Copy Params
@@ -649,6 +686,7 @@ namespace SonicColorsSetEditor
                     var newTransform = new SetObjectTransform();
                     newTransform.Position = transform.Position;
                     newTransform.Rotation = transform.Rotation;
+                    newTransform.RotationV3 = transform.RotationV3;
                     newTransform.Scale = transform.Scale;
                     transforms.Add(newTransform);
                 }
@@ -750,6 +788,43 @@ namespace SonicColorsSetEditor
             SaveSetData(true);
         }
 
+        public void batchConvertToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var ofd = new OpenFileDialog()
+            {
+                Title = "Open SetData",
+                Filter = $"{GameName} SetData|*.orc|XML|*.xml",
+                Multiselect = true
+            };
+            var sfd = new SaveFileDialog
+            {
+                FileName = "Choose output folder and output type",
+                Filter = $"{GameName} SetData|*.orc|{GameName} Ultimate SetData|*.orc|Sonic Generations SetData|*.set.xml|XML|*.xml"
+            };
+
+            if ((ofd.ShowDialog() == DialogResult.OK)&&(sfd.ShowDialog() == DialogResult.OK))
+            {
+                string saveDirectory = Path.GetDirectoryName(sfd.FileName);
+                string saveExtension = Path.GetExtension(sfd.FileName);
+                int saveType = sfd.FilterIndex;
+                
+                foreach (var item in ofd.FileNames)
+                {
+                    string filePath = item;
+                    OpenSetData(filePath);
+                    if (saveType == 1) chkbox_IsUltimate.Checked = false;
+                    if (saveType == 2) chkbox_IsUltimate.Checked = true;
+                    LoadedFilePath = saveDirectory + "\\" + Path.GetFileNameWithoutExtension(filePath) + saveExtension;
+                    SaveSetData(false);
+                }
+            }
+            else
+            {
+                MessageBox.Show("Files or directory not chosen.", ProgramName, MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+            }
+        }
+
         private void ToolStripMenuItem_OpenExtractedCPK_Click(object sender, EventArgs e)
         {
             var sfd = new SaveFileDialog()
@@ -849,6 +924,8 @@ namespace SonicColorsSetEditor
                     (float)NumericUpDown_Yaw.Value,
                     (float)NumericUpDown_Roll.Value), false);
                 objectTransform.Position = objectPos;
+
+                objectTransform.RotationV3 = objectTransform.Rotation.ToEulerAngles(true);
 
                 UpdateSetObject(setObject);
                 UpdateTransform(setObject, (int)NumericUpDown_TransIndex.Value);
