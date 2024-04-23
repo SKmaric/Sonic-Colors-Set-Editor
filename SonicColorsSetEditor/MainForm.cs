@@ -493,10 +493,10 @@ namespace SonicColorsSetEditor
 
         public static void WriteDefaultCustomData(SetObject setObject)
         {
-            setObject.CustomData.Add("Unknown1", new SetObjectParam(typeof(ushort), (ushort)0));
-            setObject.CustomData.Add("Unknown2", new SetObjectParam(typeof(uint), 0u));
-            setObject.CustomData.Add("Unknown3", new SetObjectParam(typeof(uint), 0u));
-            setObject.CustomData.Add("Unknown4", new SetObjectParam(typeof(float), 0f));
+            setObject.CustomData.Add("Class", new SetObjectParam(typeof(ushort), (ushort)0));
+            setObject.CustomData.Add("ParamArray", new SetObjectParam(typeof(uint), 0u));
+            setObject.CustomData.Add("UnitArray", new SetObjectParam(typeof(uint), 0u));
+            setObject.CustomData.Add("ID", new SetObjectParam(typeof(float), 0f));
             setObject.CustomData.Add("RangeIn" , new SetObjectParam(typeof(float), 1000f));
             setObject.CustomData.Add("RangeOut", new SetObjectParam(typeof(float), 1200f));
         }
@@ -677,6 +677,14 @@ namespace SonicColorsSetEditor
                     newParam.Data = param.Data;
                     newParam.DataType = param.DataType;
                     sobj.Parameters.Add(newParam);
+                }
+
+                foreach (var param in SelectedSetObject.CustomData)
+                {
+                    var newParam = new SetObjectParam();
+                    newParam.Data = param.Value.Data;
+                    newParam.DataType = param.Value.DataType;
+                    sobj.CustomData.Add(param.Key, newParam);
                 }
 
                 // Copy Transforms
