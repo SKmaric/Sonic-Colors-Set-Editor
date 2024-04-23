@@ -40,6 +40,10 @@
             this.Button_Cancel = new System.Windows.Forms.Button();
             this.CheckBox_UseEnum = new System.Windows.Forms.CheckBox();
             this.ComboBox_Enum = new System.Windows.Forms.ComboBox();
+            this.btnDeleteItem = new System.Windows.Forms.Button();
+            this.btnAddItem = new System.Windows.Forms.Button();
+            this.listView1 = new System.Windows.Forms.ListView();
+            this.Value = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown2)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown3)).BeginInit();
@@ -148,12 +152,51 @@
             this.ComboBox_Enum.TabIndex = 19;
             this.ComboBox_Enum.Visible = false;
             // 
+            // btnDeleteItem
+            // 
+            this.btnDeleteItem.Location = new System.Drawing.Point(390, 17);
+            this.btnDeleteItem.Name = "btnDeleteItem";
+            this.btnDeleteItem.Size = new System.Drawing.Size(75, 23);
+            this.btnDeleteItem.TabIndex = 21;
+            this.btnDeleteItem.Text = "Delete";
+            this.btnDeleteItem.UseVisualStyleBackColor = true;
+            this.btnDeleteItem.Click += new System.EventHandler(this.btnDeleteItem_Click);
+            // 
+            // btnAddItem
+            // 
+            this.btnAddItem.Location = new System.Drawing.Point(309, 17);
+            this.btnAddItem.Name = "btnAddItem";
+            this.btnAddItem.Size = new System.Drawing.Size(75, 23);
+            this.btnAddItem.TabIndex = 22;
+            this.btnAddItem.Text = "Add";
+            this.btnAddItem.UseVisualStyleBackColor = true;
+            this.btnAddItem.Click += new System.EventHandler(this.btnAddItem_Click);
+            // 
+            // listView1
+            // 
+            this.listView1.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.Value});
+            this.listView1.HideSelection = false;
+            this.listView1.Location = new System.Drawing.Point(197, 34);
+            this.listView1.Name = "listView1";
+            this.listView1.Size = new System.Drawing.Size(106, 68);
+            this.listView1.TabIndex = 23;
+            this.listView1.UseCompatibleStateImageBehavior = false;
+            this.listView1.View = System.Windows.Forms.View.Details;
+            // 
+            // Value
+            // 
+            this.Value.Text = "Value";
+            // 
             // EditParamForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.White;
             this.ClientSize = new System.Drawing.Size(477, 114);
+            this.Controls.Add(this.listView1);
+            this.Controls.Add(this.btnAddItem);
+            this.Controls.Add(this.btnDeleteItem);
             this.Controls.Add(this.ComboBox_Enum);
             this.Controls.Add(this.CheckBox_UseEnum);
             this.Controls.Add(this.Button_Cancel);
@@ -192,6 +235,9 @@
         private System.Windows.Forms.Button Button_Cancel;
         private System.Windows.Forms.CheckBox CheckBox_UseEnum;
         private System.Windows.Forms.ComboBox ComboBox_Enum;
-
+        private System.Windows.Forms.Button btnDeleteItem;
+        private System.Windows.Forms.Button btnAddItem;
+        private System.Windows.Forms.ListView listView1;
+        private System.Windows.Forms.ColumnHeader Value;
     }
 }

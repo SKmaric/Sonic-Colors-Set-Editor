@@ -49,7 +49,7 @@ namespace SonicColorsSetEditor
         {
             // Hide things
             textBox1.Visible = numericUpDown1.Visible = numericUpDown2.Visible = numericUpDown3.Visible =
-                button1.Visible = ComboBox_Enum.Visible = false;
+                button1.Visible = ComboBox_Enum.Visible = listView1.Visible = btnDeleteItem.Visible = false;
 
             var type = Type;
 
@@ -115,6 +115,18 @@ namespace SonicColorsSetEditor
             else if (type == typeof(Quaternion))
             {
                 // NOPE
+            }
+            else if (type.IsArray)
+            {
+                if (type.GetElementType() == typeof(uint))
+                {
+                    listView1.Visible = true;
+                    btnDeleteItem.Visible = true;
+                    numericUpDown1.Visible = true;
+                    numericUpDown1.DecimalPlaces = 0;
+                    numericUpDown1.Minimum = 0;
+                    numericUpDown1.Maximum = 0xFFFFFFFF;
+                }
             }
             else if (type == typeof(object))
             {
@@ -186,6 +198,18 @@ namespace SonicColorsSetEditor
             {
                 // NOPE
             }
+            else if (type.IsArray)
+            {
+                if (type.GetElementType() == typeof(uint))
+                {
+                    foreach (uint value in (uint[])Param.Data)
+                    {
+                        listView1.Items.Add(value.ToString());
+                    }
+                    listView1.Visible = true;
+                    btnDeleteItem.Visible = true;
+                }
+            }
             else if (type == typeof(object))
             {
                 MessageBox.Show("WHAT HAVE YOU DONE?");
@@ -250,6 +274,19 @@ namespace SonicColorsSetEditor
             {
                 // NOPE
             }
+            else if (type.IsArray)
+            {
+                if (type.GetElementType() == typeof(uint))
+                {
+                    var arrayValue = new uint[listView1.Items.Count];
+                    
+                    for (int i = 0; i < listView1.Items.Count; i++)
+                    {
+                        arrayValue[i] = UInt32.Parse(listView1.Items[i].Text);
+                    }
+                    Param.Data = arrayValue;
+                }
+            }
             else if (type == typeof(object))
             {
                 Close();
@@ -277,6 +314,16 @@ namespace SonicColorsSetEditor
         private void CheckBox_UseEnum_CheckedChanged(object sender, EventArgs e)
         {
             UpdateTypes();
+        }
+
+        private void btnDeleteItem_Click(object sender, EventArgs e)
+        {
+            listView1.Items.RemoveAt(listView1.SelectedItems[0].Index);
+        }
+
+        private void btnAddItem_Click(object sender, EventArgs e)
+        {
+            listView1.Items.Add(numericUpDown1.Text);
         }
     }
 }
